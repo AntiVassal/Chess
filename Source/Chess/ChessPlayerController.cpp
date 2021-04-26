@@ -22,7 +22,7 @@ AChessPlayerController::AChessPlayerController()
 	static ConstructorHelpers::FClassFinder <UUserWidget> lose(TEXT("WidgetBlueprint'/Game/UMG/YourLose.YourLose_C'"));
     this->loseUMG = lose.Class;
     //Виджет главного меню
-	static ConstructorHelpers::FClassFinder <UUserWidget> mainMenu(TEXT("WidgetBlueprint'/Game/UMG/MainMenu.MainMenu_C'"))ж
+    static ConstructorHelpers::FClassFinder <UUserWidget> mainMenu(TEXT("WidgetBlueprint'/Game/UMG/MainMenu.MainMenu_C'"));
     this->mainMenuUMG = mainMenu.Class;
 
 }
