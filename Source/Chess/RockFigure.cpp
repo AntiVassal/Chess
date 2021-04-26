@@ -3,73 +3,41 @@
 
 #include "RockFigure.h"
 #include "Board.h"
-bool ARockFigure::isValid(int32 row, int32 column, bool& canBrake)const {
-	ABoard* lboard = this->getBoard();
-	auto lfigure = lboard->getFigure(row, column);
-	canBrake = lfigure != nullptr;
-	return lfigure == nullptr || (canBrake && lfigure->direction != this->direction);
+#include "Moves/MoveUp.h"
+#include "Moves/MoveDown.h"
+#include "Moves/MoveLeft.h"
+#include "Moves/MoveRight.h"
+ARockFigure::ARockFigure() {
+	for (int8 i = 1; i < 8; ++i) {
+		//Движение вверх на i клеток
+		FString name = TEXT("MoveUp");
+		name.AppendInt(i);
+		auto moveUp = this->CreateDefaultSubobject<UMoveUp>(FName(name));
+		moveUp->setCount(i);
+		this->addMove(moveUp);
+		//Движение вниз на i клеток
+		name = TEXT("MoveDown");
+		name.AppendInt(i);
+		auto moveDown = this->CreateDefaultSubobject<UMoveDown>(FName(name));
+		moveDown->setCount(i);
+		this->addMove(moveDown);
+		//Движение влево на i клеток
+		name = TEXT("MoveLeft");
+		name.AppendInt(i);
+		auto moveLeft = this->CreateDefaultSubobject<UMoveLeft>(FName(name));
+		moveLeft->setCount(i);
+		this->addMove(moveLeft);
+		//Движение вправо на i клеток
+		name = TEXT("MoveRight");
+		name.AppendInt(i);
+		auto moveRight = this->CreateDefaultSubobject<UMoveRight>(FName(name));
+		moveRight->setCount(i);
+		this->addMove(moveRight);
+	}
 }
-
-TArray<FMove> ARockFigure::getMoves() const {
-	TArray<FMove> res;
-	FMove move;
-	move.fromColumn = this->getPositionColumn();
-	move.fromRow = this->getPositionRow();
-	for (int32 i = 1; i < 8; ++i) {
-		move.toColumn = move.fromColumn - i;
-		move.toRow = move.fromRow;
-		if (move.toColumn < 0) {
-			break;
-		}
-		bool isBreak = false;
-		if (this->isValid(move.toRow, move.toColumn, isBreak)) {
-			res.Add(move);
-		}
-		if (isBreak) {
-			break;
-		}
+float ARockFigure::getPower(int8 row, int8 column) const {
+	if (this->getDirection() == DirectionFigure::BLACK) {
+		row = 7 - row;
 	}
-	for (int32 i = 1; i < 8; ++i) {
-		move.toColumn = move.fromColumn;
-		move.toRow = move.fromRow + i;
-		if (move.toRow > 7) {
-			break;
-		}
-		bool isBreak = false;
-		if (this->isValid(move.toRow, move.toColumn, isBreak)) {
-			res.Add(move);
-		}
-		if (isBreak) {
-			break;
-		}
-	}
-	for (int32 i = 1; i < 8; ++i) {
-		move.toColumn = move.fromColumn + i;
-		move.toRow = move.fromRow;
-		if (move.toColumn > 7) {
-			break;
-		}
-		bool isBreak = false;
-		if (this->isValid(move.toRow, move.toColumn, isBreak)) {
-			res.Add(move);
-		}
-		if (isBreak) {
-			break;
-		}
-	}
-	for (int32 i = 1; i < 8; ++i) {
-		move.toColumn = move.fromColumn;
-		move.toRow = move.fromRow - i;
-		if (move.toRow < 0) {
-			break;
-		}
-		bool isBreak = false;
-		if (this->isValid(move.toRow, move.toColumn, isBreak)) {
-			res.Add(move);
-		}
-		if (isBreak) {
-			break;
-		}
-	}
-	return res;
+	return 50.0f + powerMatrix[row][column];
 }

@@ -3,109 +3,72 @@
 
 #include "King.h"
 #include "Board.h"
+#include "MoveFigure.h"
+#include "Moves/MoveLeft.h"
+#include "Moves/MoveLeftUp.h"
+#include "Moves/MoveUp.h"
+#include "Moves/MoveRightUp.h"
+#include "Moves/MoveRight.h"
+#include "Moves/MoveRightDown.h"
+#include "Moves/MoveDown.h"
+#include "Moves/MoveLeftDown.h"
+#include "Moves/MoveKingToRockLeft.h"
+#include "Moves/MoveKingToRockRight.h"
+bool AKing::isCheck() const {
+	//Получаем возможные ходы противника
+	TArray<UMoveFigure*> lmoves;
+	this->getBoard()->getAllMoves(lmoves,
+		this->getDirection() == DirectionFigure::WHITE ? DirectionFigure::BLACK : DirectionFigure::WHITE);
+	for (auto move : lmoves) {
+		if (move->getDestroyFigure() == this) {
+			//Если один из ходов целиться на короля, тогда шах
+			return true;
+		}
+	}
+	return false;
+}
 
-TArray<FMove> AKing::getMoves() const {
-	TArray<FMove> res;
-	FMove move;
-	FColumnBoard column;
-	move.fromColumn = this->getPositionColumn();
-	move.fromRow = this->getPositionRow();
-	if (move.fromRow > 0) {
-		if (move.fromColumn > 0) {
-			move.toColumn = move.fromColumn - 1;
-			move.toRow = move.fromRow - 1;
-			if (this->isValid(move.toRow, move.toColumn)) {
-				res.Add(move);
-			}
-		}
-		move.toColumn = move.fromColumn;
-		move.toRow = move.fromRow - 1;
-		if (this->isValid(move.toRow, move.toColumn)) {
-			res.Add(move);
-		}
-		if (move.fromColumn < 7) {
-			move.toColumn = move.fromColumn + 1;
-			move.toRow = move.fromRow - 1;
-			if (this->isValid(move.toRow, move.toColumn)) {
-				res.Add(move);
-			}
-		}
+float AKing::getPower(int8 row, int8 column) const {
+	if (this->getDirection() == DirectionFigure::BLACK) {
+		row = 7 - row;
 	}
-	if (move.fromColumn > 0) {
-		move.toColumn = move.fromColumn - 1;
-		move.toRow = move.fromRow;
-		if (this->isValid(move.toRow, move.toColumn)) {
-			res.Add(move);
-		}
-	}
-	if (move.fromColumn < 7) {
-		move.toColumn = move.fromColumn + 1;
-		move.toRow = move.fromRow;
-		if (this->isValid(move.toRow, move.toColumn)) {
-			res.Add(move);
-		}
-	}
-	if (move.fromRow < 7) {
-		if (move.fromColumn > 0) {
-			move.toColumn = move.fromColumn - 1;
-			move.toRow = move.fromRow + 1;
-			if (this->isValid(move.toRow, move.toColumn)) {
-				res.Add(move);
-			}
-		}
-		move.toColumn = move.fromColumn;
-		move.toRow = move.fromRow + 1;
-		if (this->isValid(move.toRow, move.toColumn)) {
-			res.Add(move);
-		}
-		if (move.fromColumn < 7) {
-			move.toColumn = move.fromColumn + 1;
-			move.toRow = move.fromRow + 1;
-			if (this->isValid(move.toRow, move.toColumn)) {
-				res.Add(move);
-			}
-		}
-	}
-	return res;
+	return 900.0f + powerMatrix[row][column];
 }
-bool AKing::isValid(int32 row, int32 column) const {
-	auto lboard = this->getBoard();
-	auto lfigure = lboard->getFigure(row, column);
-	bool isValid = lfigure == nullptr || lfigure->direction != this->direction;
-	if (!isValid) {
-		return false;
-	}
-	if (row > 0) {
-		if (column > 0 && this->isNotValidColumn(row - 1, column - 1)) {
-			return false;
-		}
-		if (this->isNotValidColumn(row - 1, column)) {
-			return false;
-		}
-		if (column < 7 && this->isNotValidColumn(row - 1, column + 1)) {
-			return false;
-		}
-	}
-	if (column > 0 && this->isNotValidColumn(row, column - 1)) {
-		return false;
-	}
-	if (column < 7 && this->isNotValidColumn(row, column + 1)) {
-		return false;
-	}
-	if (row < 7) {
-		if (column > 0 && this->isNotValidColumn(row + 1, column - 1)) {
-			return false;
-		}
-		if (this->isNotValidColumn(row + 1, column)) {
-			return false;
-		}
-		if (column < 7 && this->isNotValidColumn(row + 1, column + 1)) {
-			return false;
-		}
-	}
-	return true;
-}
-bool AKing::isNotValidColumn(int32 row, int32 column) const {
-	auto lfigure = this->getBoard()->getFigure(row, column);
-	return lfigure != nullptr && lfigure->direction != this->direction && Cast<AKing>(lfigure) != nullptr;
+AKing::AKing() {
+	//Движение влево
+	auto moveLeft = this->CreateDefaultSubobject<UMoveLeft>(TEXT("MoveLeft"));
+	moveLeft->setCount(1);
+	this->addMove(moveLeft);
+	//Движение влево в верх по диагонали
+	auto moveLeftUp = this->CreateDefaultSubobject<UMoveLeftUp>(TEXT("MoveLeftUp"));
+	moveLeftUp->setCount(1);
+	this->addMove(moveLeftUp);
+	//Движение вверх
+	auto moveUp = this->CreateDefaultSubobject<UMoveUp>(TEXT("MoveUp"));
+	moveUp->setCount(1);
+	this->addMove(moveUp);
+	//Движение вправо в верх по диагонали
+	auto moveRightUp = this->CreateDefaultSubobject<UMoveRightUp>(TEXT("MoveRightUp"));
+	moveRightUp->setCount(1);
+	this->addMove(moveRightUp);
+	//движение вправо
+	auto moveRight = this->CreateDefaultSubobject<UMoveRight>(TEXT("MoveRight"));
+	moveRight->setCount(1);
+	this->addMove(moveRight);
+	//Движение вправо в вниз по диагонали
+	auto moveRightDown = this->CreateDefaultSubobject<UMoveRightDown>(TEXT("MoveRightDown"));
+	moveRightDown->setCount(1);
+	this->addMove(moveRightDown);
+	//Движение вниз
+	auto moveDown = this->CreateDefaultSubobject<UMoveDown>(TEXT("MoveDown"));
+	moveDown->setCount(1);
+	this->addMove(moveDown);
+	//Движение влево в вниз по диагонали
+	auto moveLeftDown = this->CreateDefaultSubobject<UMoveLeftDown>(TEXT("MoveLeftDown"));
+	moveLeftDown->setCount(1);
+	this->addMove(moveLeftDown);
+	//Рокировка с левой башней
+	this->addMove(this->CreateDefaultSubobject<UMoveKingToRockLeft>(TEXT("MoveKingToRockLeft")));
+	//Рокировка с правой башней
+	this->addMove(this->CreateDefaultSubobject<UMoveKingToRockRight>(TEXT("MoveKingToRockRight")));
 }

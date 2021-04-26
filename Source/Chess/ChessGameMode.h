@@ -14,6 +14,8 @@ class AChessGameMode : public AGameModeBase
 
 public:
 	AChessGameMode();
+protected:
+	virtual void BeginPlay() override;
 };
 
 

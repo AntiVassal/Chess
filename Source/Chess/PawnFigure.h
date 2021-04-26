@@ -14,11 +14,20 @@ class CHESS_API APawnFigure : public AFigure
 {
 	GENERATED_BODY()
 private:
-	uint8 bIsFirstMove : 1;
-	int32 getNextRow(int32 row) const;
+	//ћатрица модификаторов веса фигуры, в зависимости от того, где расположена фигура
+	const float powerMatrix[8][8] = {
+		{0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
+		{0.5f, 1.0f, 1.0f, -2.0f, -2.0f, 1.0f, 1.0f, 0.5f},
+		{0.5f, -0.5f, -1.0f, 0.0f, 0.0f, -1.0f, -0.5f, 0.5f},
+		{0.0f, 0.0f, 0.0f, 2.0f, 2.0f, 0.0f, 0.0f, 0.0f},
+		{0.5f, 0.5f, 1.0f, 2.5f, 2.5f, 1.0f, 0.5f, 0.5f},
+		{1.0f, 1.0f, 2.0f, 3.0f, 3.0f, 2.0f, 1.0f, 1.0f},
+		{5.0f, 5.0f, 5.0f, 5.0f, 5.0f, 5.0f, 5.0f, 5.0f},
+		{78.0f, 79.0f, 79.0f, 79.5f, 79.5f, 79.0f, 79.0f, 78.0f}
+	};
+protected:
+	float getPower(int8 row, int8 column) const override;
 public:
 	APawnFigure();
-	virtual TArray<FMove> getMoves() const override;
-	virtual void moveTo(int32 row, int32 column) override;
-	uint8 isFirstMove() const;
+	void moveTo_Implementation(class UMoveFigure* move) override;
 };

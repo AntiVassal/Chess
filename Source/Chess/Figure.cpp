@@ -3,7 +3,11 @@
 
 #include "Figure.h"
 #include "Board.h"
-
+#include "Net/UnrealNetwork.h"
+#include "Engine/Engine.h"
+#include "Column.h"
+#include "King.h"
+#include "MoveFigure.h"
 // Sets default values
 AFigure::AFigure()
 {
@@ -11,6 +15,8 @@ AFigure::AFigure()
 	PrimaryActorTick.bCanEverTick = true;
 	this->figure = this->CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Figure"));
 	this->SetRootComponent(this->figure);
+	this->bReplicates = true;
+	this->SetReplicateMovement(true);
 }
 
 // Called when the game starts or when spawned
@@ -25,51 +31,62 @@ void AFigure::Tick(float DeltaTime)
 {
 	const float Speed = 1.0f;
 	Super::Tick(DeltaTime);
-	if (this->target != this->GetActorLocation()) {
-		this->SetActorLocation(
-			FMath::VInterpTo(
-				this->source,
-				this->target,
-				FMath::Clamp(this->time += DeltaTime, 0.0f, 1.0f),
-				Speed
-			));
-	}
-}
-TArray<FMove> AFigure::getMoves() const {
-	return TArray<FMove>();
-}
-void AFigure::moveTo(int32 row, int32 column) {
-	bool isValid = false;
-	for (auto move : this->getMoves()) {
-		if (move.toRow == row && move.toColumn == column) {
-			isValid = true;
-			break;
+	if (this->HasAuthority()) {
+		//¬ыполн€ем анимацию перемещени€
+		if (this->target != this->GetActorLocation()) {
+			this->SetActorLocation(
+				FMath::VInterpTo(
+					this->source,
+					this->target,
+					FMath::Clamp(this->time += DeltaTime, 0.0f, 1.0f),
+					Speed
+				));
+		}
+		else if (this->isEndMove) {
+			// огда анимаци€ завершена, сообщаем о завершении хода
+			this->isEndMove = false;
+			this->currentMove->finishMove();
 		}
 	}
-	if (isValid) {
-		auto col = this->board->getColumn(row, column);
-		this->target = col.location;
+}
+void AFigure::getMoves(TArray<UMoveFigure*>& outMoves) {
+	//ѕолучаем все возможные ходы
+	for (auto move : this->moves) {
+		if (move->isMoving()) {
+			outMoves.Add(move);
+		}
+	}
+}
+void AFigure::moveTo_Implementation(UMoveFigure* move) {
+	if (!this->getBoard()->isSimulated()) {
+		//»нициализаци€ переменных дл€ правильного выполнени€ анимации
+		auto col = this->board->getColumn(move->toRow(), move->toColumn());
+		this->target = col->GetActorLocation();
 		this->source = this->GetActorLocation();
 		this->time = 0;
-		auto lfigure = this->board->getFigure(row, column);
-		this->positionRow = row;
-		this->positionColumn = column;
-		if (lfigure != nullptr) {
-			this->board->destroyFigure(lfigure);
-		}
+		this->isEndMove = true;
+		this->currentMove = move;
 	}
-}
-int32 AFigure::getPositionRow() const {
-	return this->positionRow;
-}
-int32 AFigure::getPositionColumn() const {
-	return this->positionColumn;
 }
 ABoard* AFigure::getBoard() const {
 	return this->board;
 }
-void AFigure::initialize(ABoard* lboard, int32 row, int32 column) {
-	this->board = lboard;
-	this->positionRow = row;
-	this->positionColumn = column;
+void AFigure::initialize_Implementation(ABoard* aBoard) {
+	this->board = aBoard;
+}
+
+void AFigure::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	DOREPLIFETIME(AFigure, board);
+}
+DirectionFigure AFigure::getDirection() const {
+	return this->direction;
+}
+float AFigure::getPower(int8 row, int8 column) const {
+	return 0.0f;
+}
+void AFigure::addMove(UMoveFigure* move) {
+	//—охранение возможного хода
+	this->moves.Add(move);
+	move->initialzie(this);
 }

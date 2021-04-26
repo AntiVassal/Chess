@@ -3,79 +3,52 @@
 
 #include "Knight.h"
 #include "Board.h"
-bool AKnight::isValid(int32 row, int32 column) const {
-	auto lboard = this->getBoard();
-	auto lfigure = lboard->getFigure(row, column );
-	return lfigure == nullptr || lfigure->direction != this->direction;
+#include "Moves/MoveKnight.h"
+float AKnight::getPower(int8 row, int8 column) const {
+	if (this->getDirection() == DirectionFigure::BLACK) {
+		row = 7 - row;
+	}
+	return 30.0f + powerMatrix[row][column];
 }
-TArray<FMove> AKnight::getMoves() const {
-	TArray<FMove> res;
-	FMove move;
-	move.fromColumn = this->getPositionColumn();
-	move.fromRow = this->getPositionRow();
-	if (move.fromRow > 0) {
-		if (move.fromColumn > 1) {
-			move.toRow = move.fromRow - 1;
-			move.toColumn = move.fromColumn - 2;
-			if (this->isValid(move.toRow, move.toColumn)) {
-				res.Add(move);
-			}
-		}
-		if (move.fromColumn < 6) {
-			move.toRow = move.fromRow - 1;
-			move.toColumn = move.fromColumn + 2;
-			if (this->isValid(move.toRow, move.toColumn)) {
-				res.Add(move);
-			}
-		}
-		if (move.fromRow > 1) {
-			if (move.fromColumn > 0) {
-				move.toRow = move.fromRow - 2;
-				move.toColumn = move.fromColumn - 1;
-				if (this->isValid(move.toRow, move.toColumn)) {
-					res.Add(move);
-				}
-			}
-			if (move.fromColumn < 7) {
-				move.toRow = move.fromRow - 2;
-				move.toColumn = move.fromColumn + 1;
-				if (this->isValid(move.toRow, move.toColumn)) {
-					res.Add(move);
-				}
-			}
-		}
-	}
-	if (move.fromRow < 7) {
-		if (move.fromColumn > 1) {
-			move.toRow = move.fromRow + 1;
-			move.toColumn = move.fromColumn - 2;
-			if (this->isValid(move.toRow, move.toColumn)) {
-				res.Add(move);
-			}
-		}
-		if (move.fromColumn < 6) {
-			move.toRow = move.fromRow + 1;
-			move.toColumn = move.fromColumn + 2;
-			if (this->isValid(move.toRow, move.toColumn)) {
-				res.Add(move);
-			}
-		}
-		if (move.fromRow < 6) {
-			if (move.fromColumn > 0) {
-				move.toRow = move.fromRow + 2;
-				move.toColumn = move.fromColumn - 1;
-				if (this->isValid(move.toRow, move.toColumn)) {
-					res.Add(move);
-				}
-			}
-			if (move.fromColumn < 7) {
-				move.toRow = move.fromRow + 2;
-				move.toColumn = move.fromColumn + 1;
-				if (this->isValid(move.toRow, move.toColumn)) {
-					res.Add(move);
-				}
-			}
-		}
-	}
-	return res;
+AKnight::AKnight() {
+	//’од на одну клетку вверх и две влево
+	FName name = TEXT("Move1-2");
+	auto move = this->CreateDefaultSubobject<UMoveKnight>(name);
+	move->setOffset(1, -2);
+	this->addMove(move);
+	//’од на две клетки вверх и одну влево
+	name = TEXT("Move2-1");
+	move = this->CreateDefaultSubobject<UMoveKnight>(name);
+	move->setOffset(2, -1);
+	this->addMove(move);
+	//’од на две клетки вверх и одну вправо
+	name = TEXT("Move21");
+	move = this->CreateDefaultSubobject<UMoveKnight>(name);
+	move->setOffset(2, 1);
+	this->addMove(move);
+	//’од на одну клетку вверх и две вправо
+	name = TEXT("Move12");
+	move = this->CreateDefaultSubobject<UMoveKnight>(name);
+	move->setOffset(1, 2);
+	this->addMove(move);
+	//’од на одну клетку вниз и две вправо
+	name = TEXT("Move-12");
+	move = this->CreateDefaultSubobject<UMoveKnight>(name);
+	move->setOffset(-1, 2);
+	this->addMove(move);
+	//’од на две клетки вниз и одну вправо
+	name = TEXT("Move-21");
+	move = this->CreateDefaultSubobject<UMoveKnight>(name);
+	move->setOffset(-2, 1);
+	this->addMove(move);
+	//’од на две клетки вниз и одну влево
+	name = TEXT("Move-2-1");
+	move = this->CreateDefaultSubobject<UMoveKnight>(name);
+	move->setOffset(-2, -1);
+	this->addMove(move);
+	//’од на одну клетку вниз и две влево
+	name = TEXT("Move-1-2");
+	move = this->CreateDefaultSubobject<UMoveKnight>(name);
+	move->setOffset(-1, -2);
+	this->addMove(move);
 }
