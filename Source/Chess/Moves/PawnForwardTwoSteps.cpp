@@ -2,24 +2,26 @@
 
 
 #include "PawnForwardTwoSteps.h"
-#include "../Figure.h"
+#include "../Figures/Figure.h"
 #include "../Board.h"
-bool UPawnForwardTwoSteps::isMoving() {
+bool UPawnForwardTwoSteps::IsValidMoving() {
 	//Проверяем, не приведёт ли ход к мату и не выйдет ли он за пределы доски
-	if (!Super::isMoving()) {
+	if (!Super::IsValidMoving()) {
 		return false;
 	}
+	FFigureInfo Info = this->GetFigureInfoBeforeMoving();
+	AFigure* CurrentFigure = this->GetFigure();
 	//Мешка может ступить вперёд только если это первый её ход и две клетки перед ней пустые
-	if (this->getFigure()->getBoard()->getFigure(
-		this->getRow() + (this->getFigure()->getDirection() == DirectionFigure::WHITE ? 1 : -1),
-		this->getColumn()) != nullptr) {
+	if (CurrentFigure->GetBoard()->GetFigure(
+		Info.Row + (CurrentFigure->GetColor() == EColorFigure::WHITE ? 1 : -1),
+		Info.Column) != nullptr) {
 		return false;
 	}
-	return this->getDestroyFigure() == nullptr && this->getFigure()->getBoard()->getCountMoves(this->getFigure()) == 0;
+	return this->GetDestroyFigure() == nullptr && Info.CountMoves == 0;
 }
-int8 UPawnForwardTwoSteps::toColumn() const {
-	return this->getColumn();
-}
-int8 UPawnForwardTwoSteps::toRow() const {
-	return this->getFigure()->getDirection() == DirectionFigure::WHITE ? this->getRow() + 2 : this->getRow() - 2;
+FFigureInfo UPawnForwardTwoSteps::GetFigureInfoAfterMoving() const{
+	FFigureInfo Info = this->GetFigureInfoBeforeMoving();
+	Info.Row += this->GetFigure()->GetColor() == EColorFigure::WHITE ? 2 : -2;
+	++Info.CountMoves;
+	return Info;
 }

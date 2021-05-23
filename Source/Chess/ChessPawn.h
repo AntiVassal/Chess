@@ -4,8 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
-#include "DirectionFigure.h"
-#include "Figure.h"
+#include "ColorFigure.h"
+#include "Figures/Figure.h"
 #include "ChessPawn.generated.h"
 
 UCLASS(config=Game)
@@ -18,50 +18,73 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
-	//Цвет фигур, за которые играет игрок
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, ReplicatedUsing=onDirectionReplicated)
-	TEnumAsByte<DirectionFigure> direction;
-	//Функция вызвывается каждый раз, когда переменная direction реплицируется
+	/** Цвет фигур, за которые играет игрок */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, ReplicatedUsing= OnDirectionReplicated)
+	EColorFigure ColorSide;
+	/** Вызывается, при инициализации игрока и определении того, за какую из сторон он будет играть */
 	UFUNCTION()
-	void onDirectionReplicated();
-	//Отображает сообщение о выиграше
+	void OnDirectionReplicated();
+	/** Сообщает игроку, что он выиграл */
 	UFUNCTION(Client, reliable)
-		void win();
-	//Отображатет сообщение о проигрыше
+		void Win();
+	/** Сообщает игроку, что он проиграл */
 	UFUNCTION(Client, reliable)
-		void lose();
-	//Сообщает, что одна из пешек добралась до противоположного конца доски и заменяет её на одну из возможных фигур
+		void Lose();
+	/** Сообщает, что одна из пешек добралась до противоположного конца доски, чтобы заменить её на одну из возможных фигур */
 	UFUNCTION(Server, reliable)
-		void pawnEndPath(int32 row, int32 column);
-	//Ожидание хода
+		void OnPawnEndPath(int32 Row, int32 Column);
+	/** Сообщает игроку, что теперь его ход */
 	UFUNCTION(Server, reliable)
-		void whaitMove();
-	//Размещение одной из фигур в зависимости од того, за какой цвет играет игрок
+		void WhaitNextMove();
+	/**
+	 * Размещает одну из выбраных фигур на доске, в зависимости от цвета игрока
+	 * @param WhiteFigure - Выбраная фигура для белого цвета
+	 * @param BlackFigure - Выбраная фигура для чёрного цвета
+	 * @param Row - Рядок, в котором будет размещена фигура
+	 * @param Column - Столбец, в котором будет размещена фигура
+	 */
 	UFUNCTION(BlueprintCallable)
-		void selectedFigureSwap(TSubclassOf<AFigure> whiteFigure, TSubclassOf<AFigure> blackFigure, int32 row, int32 column);
+		void SelectedFigureSwap(TSubclassOf<AFigure> WhiteFigure, TSubclassOf<AFigure> BlackFigure, int32 Row, int32 Column);
 protected:
 	virtual void BeginPlay() override;
-	//Событие клика
+	/** Сообщает о том, что игрок кликнул по доске */
 	void TriggerClick();
-	//Трасировка луча
+	/**
+	 * Трасировка луча, для определения того, куда именно кликнул игрок
+	 * @param Start - Начало луча
+	 * @param End - Конец луча
+	 * @param bDrawDebugHelpers - Определяет, нужно ли рисвать луч или нет.
+	 */
 	void TraceForBlock(const FVector& Start, const FVector& End, bool bDrawDebugHelpers);
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult) override;
+	/** Камера, через которую игрок будет видеть игровую доску */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-		class UCameraComponent* camera;
-	//Модель доски
+		class UCameraComponent* CameraComponent;
+	/** Указатель на игровую доску */
 	UPROPERTY(Replicated)
-		class ABoard* board;
+		class ABoard* BoardActor;
 private:
-	//Клик по доске или фигуре
+	/**
+	 * Вызывается, когда лучь трасировки пересекается с доской или фигурой. Сервер либо сохраняет выбранную фигуру, либо перемещает выбраную фигуру в указаное местоположение
+	 * @param HitResult - Информация о месте, куда кликнул игрок
+	 */
 	UFUNCTION(Server, reliable)
-		void clickToBoard(FHitResult HitResult);
-	//Разместить фигуру в указаную клетку
+		void OnClickToBoard(FHitResult HitResult);
+	/**
+	 * Спавнит и размещает фигуру на игровой доске
+	 * @param Figure - Класс фигуры, которую нужно разместить на доске
+	 * @param Row - Рядок, в котором фигура будет размещена
+	 * @param Column - Столбец, в котором фигура будет размещена
+	 */
 	UFUNCTION(Server, reliable)
-		void swapPawnToFigure(TSubclassOf<AFigure> figure, int32 row, int32 column);
-	//Клик по доске или фигуре (отображение доступных ходов)
+		void SwapPawnToFigure(TSubclassOf<AFigure> Figure, int32 Row, int32 Column);
+	/**
+	 * Вызывается, когда лучь трасировки пересекается с фигурой и подсвечивает все возможные ходы выбраной фигуры
+	 * @param HitResult - Информация о месте, куда кликнул игрок
+	 */
 	UFUNCTION(Client, reliable)
-		void clickToBoardClient(FHitResult HitResult);
-	//Выбранная фигура
-	class AFigure* selectedFigure;
+		void OnClickToBoardClient(FHitResult HitResult);
+	/** Указатель на фигуру, которая будет ходить */
+	class AFigure* SelectedFigure;
 };

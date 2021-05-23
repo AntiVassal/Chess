@@ -2,66 +2,67 @@
 
 
 #include "MoveKingToRockRight.h"
-#include "../Figure.h"
+#include "../Figures/Figure.h"
 #include "../Board.h"
-bool UMoveKingToRockRight::isMoving() {
+bool UMoveKingToRockRight::IsValidMoving() {
 	//ѕровер€ем, не приведЄт ли ход к мату и не выйдет ли он за пределы доски
-	if (!Super::isMoving()) {
+	if (!Super::IsValidMoving()) {
 		return false;
 	}
 	//–окировка возможна только если король не разу не ходил
-	auto countMoves = this->getFigure()->getBoard()->getCountMoves(this->getFigure());
-	if (countMoves > 0) {
+	FFigureInfo Info = this->GetFigureInfoBeforeMoving();
+	if (Info.CountMoves > 0) {
 		return false;
 	}
-	auto row = this->getRow();
-	auto column = this->getColumn();
+	AFigure* CurrentFigure = this->GetFigure();
+	ABoard* Board = CurrentFigure->GetBoard();
 	//–окировка возможна только если башн€ не разу не ходила
-	auto rockFigure = this->getFigure()->getBoard()->getFigure(row, 7);
-	if (rockFigure == nullptr) {
+	AFigure* RockFigure = Board->GetFigure(Info.Row, 7);
+	if (RockFigure == nullptr) {
 		return false;
 	}
-	auto rockMoves = this->getFigure()->getBoard()->getCountMoves(rockFigure);
-	if (rockMoves > 0) {
+	FFigureInfo RockFigureInfo = Board->GetFigureInfo(RockFigure);
+	if (RockFigureInfo.CountMoves > 0) {
 		return false;
 	}
 	//–окировка возможна только если между королЄм и башней нет других фигур
-	for (int8 i = column + 1; i < 7; ++i) {
-		auto figure = this->getFigure()->getBoard()->getFigure(row, i);
-		if (figure != nullptr) {
+	for (int8 i = Info.Column + 1; i < 7; ++i) {
+		AFigure* Figure = this->GetFigure()->GetBoard()->GetFigure(Info.Row, i);
+		if (Figure != nullptr) {
 			return false;
 		}
 	}
 	return true;
 }
-void UMoveKingToRockRight::move() {
-	auto row = this->getRow();
-	auto column = this->getColumn();
-	//—начала перемещаем башню
-	auto rockFigure = this->getFigure()->getBoard()->getFigure(row, 7);
-	TArray<UMoveFigure*> moves;
-	rockFigure->getMoves(moves);
-	for (auto m : moves) {
-		if (m->toRow() == row && m->toColumn() == column + 1) {
-			m->move();
+void UMoveKingToRockRight::Move() {
+	//»щем ход, который переместит башню на клетку слева от корол€, и выполн€ем его
+	FFigureInfo Info = this->GetFigureInfoBeforeMoving();
+	AFigure* RockFigure = this->GetFigure()->GetBoard()->GetFigure(Info.Row, 7);
+	TArray<UMoveFigure*> Moves;
+	RockFigure->GetMoves(Moves);
+	for (UMoveFigure* Move : Moves) {
+		FFigureInfo RockFigureMoveInfo = Move->GetFigureInfoAfterMoving();
+		if (RockFigureMoveInfo.Row == Info.Row && RockFigureMoveInfo.Column == Info.Column + 1) {
+			Move->Move();
 			break;
 		}
 	}
-	//ѕеремещаем корол€
-	Super::move();
+	//Ћогика перемещени€ фигуры уже определена в базовом классе.
+	Super::Move();
 }
-void UMoveKingToRockRight::rollback() {
-	//ќткатываем перемещение корол€
-	Super::rollback();
-	//ќткатываем перемещение башни
-	Super::rollback();
+void UMoveKingToRockRight::Rollback() {
+	//ѕоскольку при выполнении хода, мы сначала перемещаем баню, а затем - корол€,
+	//то при откате доски, нужно вернутьс€ на два шага назад
+	Super::Rollback();
+	Super::Rollback();
 }
-int8 UMoveKingToRockRight::toColumn() const {
-	return this->getColumn() + 2;
+FFigureInfo UMoveKingToRockRight::GetFigureInfoAfterMoving() const{
+	FFigureInfo Info = this->GetFigureInfoBeforeMoving();
+	Info.Column += 2;
+	++Info.CountMoves;
+	return Info;
 }
-int8 UMoveKingToRockRight::toRow() const {
-	return this->getRow();
-}
-void UMoveKingToRockRight::finishMove() {
-
+void UMoveKingToRockRight::FinishMove() {
+	//—ообщение о завершении хода будет проигнорировано,
+	//поскольку при выполнении хода поступит сообщение также о завершении перемещени€ башни
 }

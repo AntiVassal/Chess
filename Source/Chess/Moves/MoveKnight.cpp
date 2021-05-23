@@ -2,23 +2,24 @@
 
 
 #include "MoveKnight.h"
-#include "../Figure.h"
-bool UMoveKnight::isMoving() {
+#include "../Figures/Figure.h"
+bool UMoveKnight::IsValidMoving() {
 	//Проверяем, не приведёт ли ход к мату и не выйдет ли он за пределы доски
-	if (!Super::isMoving()) {
+	if (!Super::IsValidMoving()) {
 		return false;
 	}
 	//Ход возможен только если клетка назначения пуста, или там находится фигура, которую можно съесть
-	auto destroyFigure = this->getDestroyFigure();
-	return destroyFigure == nullptr || destroyFigure->getDirection() != this->getFigure()->getDirection();
+	AFigure* DestroyFigure = this->GetDestroyFigure();
+	return DestroyFigure == nullptr || DestroyFigure->GetColor() != this->GetFigure()->GetColor();
 }
-int8 UMoveKnight::toColumn() const {
-	return this->getColumn() + this->_offsetColumn;
+FFigureInfo UMoveKnight::GetFigureInfoAfterMoving() const {
+	FFigureInfo info = this->GetFigureInfoBeforeMoving();
+	info.Column += this->OffsetColumn;
+	info.Row += this->OffsetRow;
+	++info.CountMoves;
+	return info;
 }
-int8 UMoveKnight::toRow() const {
-	return this->getRow() + this->_offsetRow;
-}
-void UMoveKnight::setOffset(int8 row, int8 column) {
-	this->_offsetRow = row;
-	this->_offsetColumn = column;
+void UMoveKnight::SetOffset(int8 Row, int8 Column) {
+	this->OffsetRow = Row;
+	this->OffsetColumn = Column;
 }

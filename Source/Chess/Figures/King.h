@@ -7,7 +7,7 @@
 #include "King.generated.h"
 
 /**
- * 
+ * ќписываетс€ фигура корол€
  */
 UCLASS()
 class CHESS_API AKing : public AFigure
@@ -15,12 +15,17 @@ class CHESS_API AKing : public AFigure
 	GENERATED_BODY()
 public:
 	AKing();
-	bool isCheck() const;
+	/**
+	 * ѕровер€т, находитс€ ли король под прицелом другой фигуры, или нет
+	 * @return true 
+	 * @return false 
+	 */
+	bool IsCheck() const;
 protected:
-	float getPower(int8 row, int8 column) const override;
+	float GetPower(int8 Row, int8 Column) const override;
 private:
-	//ћатрица модификаторов веса фигуры, в зависимости от того, где расположена фигура
-	const float powerMatrix[8][8] = {
+	/** ћатрица модификаторов веса фигуры, в зависимости от того, где расположена фигура */
+	const float PowerMatrix[8][8] = {
 		{2.0f, 3.0f, 1.0f, 0.0f, 0.0f, 1.0f, 3.0f, 2.0f},
 		{2.0f, 2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 2.0f, 2.0f},
 		{-1.0f, -2.0f, -2.0f, -2.0f, -2.0f, -2.0f, -2.0f, -1.0f},

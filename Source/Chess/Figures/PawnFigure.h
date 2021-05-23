@@ -7,15 +7,15 @@
 #include "PawnFigure.generated.h"
 
 /**
- * 
+ * Описывается пешка
  */
 UCLASS()
 class CHESS_API APawnFigure : public AFigure
 {
 	GENERATED_BODY()
 private:
-	//Матрица модификаторов веса фигуры, в зависимости от того, где расположена фигура
-	const float powerMatrix[8][8] = {
+	/** Матрица модификаторов веса фигуры, в зависимости от того, где расположена фигура */
+	const float PowerMatrix[8][8] = {
 		{0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f},
 		{0.5f, 1.0f, 1.0f, -2.0f, -2.0f, 1.0f, 1.0f, 0.5f},
 		{0.5f, -0.5f, -1.0f, 0.0f, 0.0f, -1.0f, -0.5f, 0.5f},
@@ -26,8 +26,8 @@ private:
 		{78.0f, 79.0f, 79.0f, 79.5f, 79.5f, 79.0f, 79.0f, 78.0f}
 	};
 protected:
-	float getPower(int8 row, int8 column) const override;
+	float GetPower(int8 Row, int8 Column) const override;
 public:
 	APawnFigure();
-	void moveTo_Implementation(class UMoveFigure* move) override;
+	void AnimateMove_Implementation(class UMoveFigure* Move) override;
 };

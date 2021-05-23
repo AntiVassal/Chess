@@ -2,33 +2,37 @@
 
 
 #include "PawnRightTake.h"
-#include "../PawnFigure.h"
+#include "../Figures/PawnFigure.h"
 #include "../Board.h"
-bool UPawnRightTake::isMoving() {
+bool UPawnRightTake::IsValidMoving() {
 	//Проверяем, не приведёт ли ход к мату и не выйдет ли он за пределы доски
-	if (!Super::isMoving()) {
+	if (!Super::IsValidMoving()) {
 		return false;
 	}
-	auto pawn = Cast<APawnFigure>(this->getDestroyFigure());
-	if (pawn == nullptr) {
+	APawnFigure* Pawn = Cast<APawnFigure>(this->GetDestroyFigure());
+	if (Pawn == nullptr) {
 		return false;
 	}
-	if (pawn->getDirection() == this->getFigure()->getDirection()) {
+	EColorFigure PawnColor = Pawn->GetColor();
+	AFigure* CurrentFigure = this->GetFigure();
+	if (PawnColor == CurrentFigure->GetColor()) {
 		return false;
 	}
 	//Пешка может взять другую пешку, если ступит на клетку,
 	//которую вторая пешка перепрыгнула при ходьбе на две клетки вперёд
-	auto pawnRow = this->getFigure()->getBoard()->getRow(pawn);
-	auto pawnCountMoves = this->getFigure()->getBoard()->getCountMoves(pawn);
-	return pawnCountMoves == 1 && ((pawnRow == 3 && pawn->getDirection() == DirectionFigure::WHITE) ||
-		(pawnRow == 4 && pawn->getDirection() == DirectionFigure::BLACK));
+	FFigureInfo Info = CurrentFigure->GetBoard()->GetFigureInfo(Pawn);
+	return Info.CountMoves == 1 && ((Info.Row == 3 && PawnColor == EColorFigure::WHITE) ||
+		(Info.Row == 4 && PawnColor == EColorFigure::BLACK));
 }
-int8 UPawnRightTake::toColumn() const {
-	return this->getColumn() + 1;
+FFigureInfo UPawnRightTake::GetFigureInfoAfterMoving() const {
+	FFigureInfo Info = this->GetFigureInfoBeforeMoving();
+	Info.Column += 1;
+	Info.Row += this->GetFigure()->GetColor() == EColorFigure::WHITE ? 1 : -1;
+	++Info.CountMoves;
+	return Info;
 }
-int8 UPawnRightTake::toRow() const {
-	return this->getRow() + (this->getFigure()->getDirection() == DirectionFigure::WHITE ? 1 : -1);
-}
-AFigure* UPawnRightTake::getDestroyFigure() const {
-	return this->getFigure()->getBoard()->getFigure(this->getRow(), this->toColumn());
+AFigure* UPawnRightTake::GetDestroyFigure() const {
+	FFigureInfo BeforeInfo = this->GetFigureInfoBeforeMoving();
+	FFigureInfo AfterInfo = this->GetFigureInfoAfterMoving();
+	return this->GetFigure()->GetBoard()->GetFigure(BeforeInfo.Row, AfterInfo.Column);
 }

@@ -3,18 +3,17 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "../MoveFigure.h"
+#include "MoveFigure.h"
 #include "PawnLeftDiagonal.generated.h"
 
 /**
- * 
+ * Ход, при котором пешка бьёт фигуру, находящуюся слева по диагонали
  */
 UCLASS()
 class CHESS_API UPawnLeftDiagonal : public UMoveFigure
 {
 	GENERATED_BODY()
 public:
-	virtual bool isMoving() override;
-	virtual int8 toColumn() const override;
-	virtual int8 toRow() const override;
+	virtual bool IsValidMoving() override;
+	virtual FFigureInfo GetFigureInfoAfterMoving() const override;
 };

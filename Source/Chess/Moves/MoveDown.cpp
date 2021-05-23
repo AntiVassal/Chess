@@ -2,32 +2,33 @@
 
 
 #include "MoveDown.h"
-#include "../Figure.h"
+#include "../Figures/Figure.h"
 #include "../Board.h"
-void UMoveDown::setCount(int8 count) {
-	this->_count = count;
+void UMoveDown::SetLength(int8 Length) {
+	this->LengthMove = Length;
 }
-bool UMoveDown::isMoving() {
+bool UMoveDown::IsValidMoving() {
 	//ѕровер€ем, не приведЄт ли ход к мату и не выйдет ли он за пределы доски
-	if (!Super::isMoving()) {
+	if (!Super::IsValidMoving()) {
 		return false;
 	}
-	auto row = this->getRow() - 1;
-	auto column = this->getColumn();
+	FFigureInfo Info = this->GetFigureInfoBeforeMoving();
+	AFigure* CurrentFigure = this->GetFigure();
+	ABoard* Board = CurrentFigure->GetBoard();
 	//≈сли между фигурой и клеткой назначени€ есть другие фигуры, то ход невозможен
-	for (int8 i = row; i > row - this->_count + 1; --i) {
-		auto destFigure = this->getFigure()->getBoard()->getFigure(i, column);
-		if (destFigure != nullptr) {
+	for (int8 i = 1; i < this->LengthMove; ++i) {
+		AFigure* DestFigure = Board->GetFigure(Info.Row - i, Info.Column);
+		if (DestFigure != nullptr) {
 			return false;
 		}
 	}
 	//’од возможен только если клетка назначени€ пуста, или там находитс€ фигура, которую можно съесть
-	auto destroyFigure = this->getDestroyFigure();
-	return destroyFigure == nullptr || destroyFigure->getDirection() != this->getFigure()->getDirection();
+	AFigure* DestFigure = this->GetDestroyFigure();
+	return DestFigure == nullptr || DestFigure->GetColor() != CurrentFigure->GetColor();
 }
-int8 UMoveDown::toColumn() const {
-	return this->getColumn();
-}
-int8 UMoveDown::toRow() const {
-	return this->getRow() - this->_count;
+FFigureInfo UMoveDown::GetFigureInfoAfterMoving() const {
+	FFigureInfo Info = this->GetFigureInfoBeforeMoving();
+	Info.Row -= this->LengthMove;
+	++Info.CountMoves;
+	return Info;
 }

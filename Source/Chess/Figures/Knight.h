@@ -7,7 +7,7 @@
 #include "Knight.generated.h"
 
 /**
- * 
+ * Описывается фигура короля
  */
 UCLASS()
 class CHESS_API AKnight : public AFigure
@@ -16,10 +16,10 @@ class CHESS_API AKnight : public AFigure
 public:
 	AKnight();
 protected:
-	float getPower(int8 row, int8 column) const override;
+	float GetPower(int8 Row, int8 Column) const override;
 private:
-	//Матрица модификаторов веса фигуры, в зависимости от того, где расположена фигура
-	const float powerMatrix[8][8] = {
+	/** Матрица модификаторов веса фигуры, в зависимости от того, где расположена фигура */
+	const float PowerMatrix[8][8] = {
 		{-5.0f, -4.0f, -3.0f, -3.0f, -3.0f, -3.0f, -4.0f, -5.0f},
 		{-4.0f, -2.0f, 0.0f, 0.5f, 0.5f, 0.0f, -2.0f, -4.0f},
 		{-3.0f, 0.5f, 1.0f, 1.5f, 1.5f, 1.0f, 0.5f, -3.0f},

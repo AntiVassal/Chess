@@ -3,18 +3,17 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "../MoveFigure.h"
+#include "MoveFigure.h"
 #include "PawnForwardTwoSteps.generated.h"
 
 /**
- * 
+ * Движение пешки вперёд на две клетки
  */
 UCLASS()
 class CHESS_API UPawnForwardTwoSteps : public UMoveFigure
 {
 	GENERATED_BODY()
 public:
-	virtual bool isMoving() override;
-	virtual int8 toColumn() const override;
-	virtual int8 toRow() const override;
+	virtual bool IsValidMoving() override;
+	virtual FFigureInfo GetFigureInfoAfterMoving() const override;
 };

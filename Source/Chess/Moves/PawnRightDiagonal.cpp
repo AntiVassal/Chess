@@ -2,19 +2,19 @@
 
 
 #include "PawnRightDiagonal.h"
-#include "../Figure.h"
-bool UPawnRightDiagonal::isMoving() {
+#include "../Figures/Figure.h"
+bool UPawnRightDiagonal::IsValidMoving() {
 	//Проверяем, не приведёт ли ход к мату и не выйдет ли он за пределы доски
-	if (!Super::isMoving()) {
+	if (!Super::IsValidMoving()) {
 		return false;
 	}
 	//По диагонали пешка может только бить
-	return this->getDestroyFigure() != nullptr && this->getDestroyFigure()->getDirection() != this->getFigure()->getDirection();
+	return this->GetDestroyFigure() != nullptr && this->GetDestroyFigure()->GetColor() != this->GetFigure()->GetColor();
 }
-int8 UPawnRightDiagonal::toColumn() const {
-	return this->getColumn() + 1;
+FFigureInfo UPawnRightDiagonal::GetFigureInfoAfterMoving() const{
+	FFigureInfo Info = this->GetFigureInfoBeforeMoving();
+	Info.Column += 1;
+	Info.Row += this->GetFigure()->GetColor() == EColorFigure::WHITE ? 1 : -1;
+	++Info.CountMoves;
+	return Info;
 }
-int8 UPawnRightDiagonal::toRow() const {
-	return this->getRow() + (this->getFigure()->getDirection() == DirectionFigure::WHITE ? 1 : -1);
-}
-

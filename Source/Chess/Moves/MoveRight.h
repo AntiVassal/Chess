@@ -3,23 +3,25 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "../MoveFigure.h"
+#include "MoveFigure.h"
 #include "MoveRight.generated.h"
 
 /**
- * 
+ * Движение вправо
  */
 UCLASS()
 class CHESS_API UMoveRight : public UMoveFigure
 {
 	GENERATED_BODY()
 public:
-	virtual bool isMoving() override;
-	virtual int8 toColumn() const override;
-	virtual int8 toRow() const override;
-	//Установка длинны, на которую будет произведён ход
-	void setCount(int8 count);
+	virtual bool IsValidMoving() override;
+	virtual FFigureInfo GetFigureInfoAfterMoving() const override;
+	/**
+	 * Установка длинны хода
+	 * @param Length - Длинна хода в клетках (1-7)
+	 */
+	void SetLength(int8 Length);
 private:
-	//Длинна хода
-	int8 _count;
+	/** Длинна хода в клетках (1-7) */
+	int8 LengthMove;
 };

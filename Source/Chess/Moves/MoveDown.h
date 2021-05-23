@@ -3,26 +3,25 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "../MoveFigure.h"
+#include "MoveFigure.h"
 #include "MoveDown.generated.h"
 
 /**
- * 
+ * Движение вниз на указаную длинну.
  */
 UCLASS()
 class CHESS_API UMoveDown : public UMoveFigure
 {
 	GENERATED_BODY()
 public:
-	//Проверка возможен ли ход
-	virtual bool isMoving() override;
-	//Получение столпца назначения
-	virtual int8 toColumn() const override;
-	//Получение рядка назначения
-	virtual int8 toRow() const override;
-	//Установка длинны, на которую будет произведён ход
-	void setCount(int8 count);
+	virtual bool IsValidMoving() override;
+	virtual FFigureInfo GetFigureInfoAfterMoving() const override;
+	/**
+	 * Устанавливает длинну, на которую будет произведён ход
+	 * @param Length - Длинна хода
+	 */
+	void SetLength(int8 Length);
 private:
-	//Длинна хода
-	int8 _count;
+	/** Длинна хода */
+	int8 LengthMove;
 };

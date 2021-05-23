@@ -1,8 +1,9 @@
 #pragma once
 #include "CoreMinimal.h"
-#include "DirectionFigure.generated.h"
+#include "ColorFigure.generated.h"
+/** Перечисление цветов фигур */
 UENUM(BlueprintType)
-enum DirectionFigure {
+enum class EColorFigure : uint8 {
 	NONE UMETA(DisplayName = "None"),
 	WHITE UMETA(DisplayName = "White"),
 	BLACK UMETA(DisplayName = "Black")

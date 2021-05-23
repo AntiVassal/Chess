@@ -6,21 +6,21 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Engine/World.h"
 #include "DrawDebugHelpers.h"
-#include "Figure.h"
+#include "Figures/Figure.h"
 #include "Board.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/Engine.h"
 #include "Column.h"
-#include "King.h"
-#include "MoveFigure.h"
+#include "Figures/King.h"
+#include "Moves/MoveFigure.h"
 #include "ChessPlayerController.h"
 #include "ChessGameMode.h"
 AChessPawn::AChessPawn(const FObjectInitializer& ObjectInitializer) 
 	: Super(ObjectInitializer)
 {
-	this->camera = this->CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	this->SetRootComponent(this->camera);
+	this->CameraComponent = this->CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	this->SetRootComponent(this->CameraComponent);
 	this->bReplicates = true;
 }
 
@@ -58,135 +58,139 @@ void AChessPawn::TraceForBlock(const FVector& Start, const FVector& End, bool bD
 	if (HitResult.Actor.IsValid())
 	{
 		//≈сли лучь столкнулс€ с доской или фигурой, то выполн€ем необходимые действи€
-		this->clickToBoard(HitResult);
-		this->clickToBoardClient(HitResult);
+		this->OnClickToBoard(HitResult);
+		this->OnClickToBoardClient(HitResult);
 	}
 }
-void AChessPawn::clickToBoard_Implementation(FHitResult HitResult) {
+void AChessPawn::OnClickToBoard_Implementation(FHitResult HitResult) {
 	//≈сли ход не наш, то ничего не делаем
-	if (this->board != nullptr && this->board->getNextMovePawn() == this) {
-		AFigure* figure = Cast<AFigure>(HitResult.Actor.Get());
-		if (figure != nullptr) {
-			if (this->selectedFigure == nullptr || this->direction == figure->getDirection()) {
+	if (this->BoardActor != nullptr && this->BoardActor->GetPlayerPawnNextMove() == this) {
+		AFigure* Figure = Cast<AFigure>(HitResult.Actor.Get());
+		if (Figure != nullptr) {
+			if (this->SelectedFigure == nullptr || this->ColorSide == Figure->GetColor()) {
 				//≈сли кликнули по фигуре, и при этом она наша, то выбираем еЄ дл€ хода
-				this->selectedFigure = figure;
+				this->SelectedFigure = Figure;
 			} else {
 				//≈сли мы кликнули по фигуре противника, то получаем все возможные ходы выбраной фигуры
-				TArray<UMoveFigure*> moves;
-				this->selectedFigure->getMoves(moves);
-				for (auto move : moves) {
-					if (move->toRow() == this->board->getRow(figure) && 
-						move->toColumn() == this->board->getColumn(figure)) {
+				TArray<UMoveFigure*> Moves;
+				this->SelectedFigure->GetMoves(Moves);
+				FFigureInfo FigureInfo = this->BoardActor->GetFigureInfo(Figure);
+				for (UMoveFigure* Move : Moves) {
+					FFigureInfo MoveFigureInfo = Move->GetFigureInfoAfterMoving();
+					if (MoveFigureInfo.Row == FigureInfo.Row && 
+						MoveFigureInfo.Column == FigureInfo.Column) {
 						//≈сли один из ходов совпал с расположением фигуры противника, то бьЄм еЄ
-						move->move();;
+						Move->Move();;
 						break;
 					}
 				}
 				//≈сли у выбраной фигуры нет возможных ходов, то провер€ем, есть ли возможные ходы в принцыпе.
-				if (moves.Num() == 0) {
-					this->board->getAllMoves(moves, this->direction);
-					if (moves.Num() == 0) {
+				if (Moves.Num() == 0) {
+					this->BoardActor->GetAllMoves(Moves, this->ColorSide);
+					if (Moves.Num() == 0) {
 						//≈сли их нет, то мы проиграли
-						this->board->lose(this);
+						this->BoardActor->Lose(this);
 					}
 				}
 			}
 		} else {
 			//≈сли кликнули по клетке, то получаем все возможные ходы выбраной фигуры
-			AColumn* column = Cast<AColumn>(HitResult.Actor.Get());
-			if (column != nullptr && this->selectedFigure != nullptr) {
-				TArray<UMoveFigure*> moves;
-				this->selectedFigure->getMoves(moves);
-				for (auto move : moves) {
-					//≈сли один из ходов совпал с расположением клетки, то бьЄм еЄ
-					if (move->toRow() == column->getRowPosition() && move->toColumn() == column->getColumnPosition()) {
-						move->move();
+			AColumn* Column = Cast<AColumn>(HitResult.Actor.Get());
+			if (Column != nullptr && this->SelectedFigure != nullptr) {
+				TArray<UMoveFigure*> Moves;
+				this->SelectedFigure->GetMoves(Moves);
+				for (UMoveFigure* Move : Moves) {
+					//≈сли один из ходов совпал с расположением клетки, то ходим
+					FFigureInfo MoveFigureInfo = Move->GetFigureInfoAfterMoving();
+					if (MoveFigureInfo.Row == Column->GetRowPosition() && MoveFigureInfo.Column == Column->GetColumnPosition()) {
+						Move->Move();
 						break;
 					}
 				}
 				//≈сли у выбраной фигуры нет возможных ходов, то провер€ем, есть ли возможные ходы в принцыпе.
-				if (moves.Num() == 0) {
-					this->board->getAllMoves(moves, this->direction);
-					if (moves.Num() == 0) {
+				if (Moves.Num() == 0) {
+					this->BoardActor->GetAllMoves(Moves, this->ColorSide);
+					if (Moves.Num() == 0) {
 						//≈сли их нет, то мы проиграли
-						this->board->lose(this);
+						this->BoardActor->Lose(this);
 					}
 				}
 			}
 		}
 	}
 }
-void AChessPawn::clickToBoardClient_Implementation(FHitResult HitResult) {
+void AChessPawn::OnClickToBoardClient_Implementation(FHitResult HitResult) {
 	//≈сли ход не наш, то ничего не делаем
-	if (this->board != nullptr && this->board->getNextMovePawn() == this) {
+	if (this->BoardActor != nullptr && this->BoardActor->GetPlayerPawnNextMove() == this) {
 		//≈сли кликнули по фигуре, и при этом она наша, то отображаем все возможные ходы
-		AFigure* figure = Cast<AFigure>(HitResult.Actor.Get());
-		if (figure != nullptr) {
-			if (this->direction == figure->getDirection()) {
-				TArray<UMoveFigure*> moves;
-				figure->getMoves(moves);
-				this->board->displayMoves(moves);
+		AFigure* Figure = Cast<AFigure>(HitResult.Actor.Get());
+		if (Figure != nullptr) {
+			if (this->ColorSide == Figure->GetColor()) {
+				TArray<UMoveFigure*> Moves;
+				Figure->GetMoves(Moves);
+				this->BoardActor->DisplayMoves(Moves);
 			} else {
-				this->board->hideMoves();
+				this->BoardActor->HideMoves();
 			}
 		} else {
-			this->board->hideMoves();
+			this->BoardActor->HideMoves();
 		}
 	}
 }
 void AChessPawn::BeginPlay() {
 	Super::BeginPlay();
 	if (this->HasAuthority()) {
-		TArray<AActor*> actors;
+		TArray<AActor*> Actors;
 		//ѕолучаем указатель на доску и инициализируем игрока
-		UGameplayStatics::GetAllActorsOfClass(this->GetWorld(), ABoard::StaticClass(), actors);
-		if (actors.Num() > 0) {
-			this->board = Cast<ABoard>(actors[0]);
-			this->board->initializePawn(this);
+		UGameplayStatics::GetAllActorsOfClass(this->GetWorld(), ABoard::StaticClass(), Actors);
+		if (Actors.Num() > 0) {
+			this->BoardActor = Cast<ABoard>(Actors[0]);
+			this->BoardActor->InitializePawn(this);
 		}
 	}
 }
 void AChessPawn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(AChessPawn, direction);
-	DOREPLIFETIME(AChessPawn, board);
+	DOREPLIFETIME(AChessPawn, ColorSide);
+	DOREPLIFETIME(AChessPawn, BoardActor);
 }
-void AChessPawn::onDirectionReplicated() {
+void AChessPawn::OnDirectionReplicated() {
 	if (this->HasAuthority()) {
 		//–азмещаем камеру в зависимости от стороны, за которую играет игрок
-		auto location = FVector::UpVector * 1800 +
-			(this->direction == DirectionFigure::WHITE ? FVector::ForwardVector : FVector::BackwardVector) * -1100;
-		this->SetActorLocation(location);
-		auto rotation = (this->board->GetActorLocation() - location).ToOrientationRotator();
-		this->SetActorRotation(rotation);
+		FVector Location = FVector::UpVector * 1800 +
+			(this->ColorSide == EColorFigure::WHITE ? FVector::ForwardVector : FVector::BackwardVector) * -1100;
+		this->SetActorLocation(Location);
+		FRotator Rotation = (this->BoardActor->GetActorLocation() - Location).ToOrientationRotator();
+		this->SetActorRotation(Rotation);
 	}
 }
 void AChessPawn::CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult) {
 	Super::CalcCamera(DeltaTime, OutResult);
 }
-void AChessPawn::pawnEndPath_Implementation(int32 row, int32 column) {
+void AChessPawn::OnPawnEndPath_Implementation(int32 Row, int32 Column) {
 	//ќтобразить меню выбора фигуры
-	auto PC = Cast<AChessPlayerController>(this->GetController());
-	PC->selectFigureTo(row, column);
+	AChessPlayerController* PC = Cast<AChessPlayerController>(this->GetController());
+	PC->SelectFigureTo(Row, Column);
 }
-void AChessPawn::whaitMove_Implementation(){}
-void AChessPawn::selectedFigureSwap(TSubclassOf<AFigure> whiteFigure, TSubclassOf<AFigure> blackFigure, int32 row, int32 column) {
+void AChessPawn::WhaitNextMove_Implementation(){}
+void AChessPawn::SelectedFigureSwap(TSubclassOf<AFigure> WhiteFigure, TSubclassOf<AFigure> BlackFigure,
+	int32 Row, int32 Column) {
 	//выбираем фигуру в зависимости от стороны
-	auto PC = Cast<AChessPlayerController>(this->GetController());
+	AChessPlayerController* PC = Cast<AChessPlayerController>(this->GetController());
 	PC->ChangeMenuWidget(nullptr);
-	this->swapPawnToFigure(this->direction == DirectionFigure::WHITE ? whiteFigure : blackFigure, row, column);
+	this->SwapPawnToFigure(this->ColorSide == EColorFigure::WHITE ? WhiteFigure : BlackFigure, Row, Column);
 }
-void AChessPawn::swapPawnToFigure_Implementation(TSubclassOf<AFigure> figure, int32 row, int32 column) {
+void AChessPawn::SwapPawnToFigure_Implementation(TSubclassOf<AFigure> Figure, int32 Row, int32 Column) {
 	//”станавливаем фигуру на доску
-	this->board->setFigure(figure, row, column, this->direction);
+	this->BoardActor->SetFigure(Figure, Row, Column, this->ColorSide);
 }
-void AChessPawn::win_Implementation() {
+void AChessPawn::Win_Implementation() {
 	//ќтображаем сообщение о том, что мы выиграли
 	auto PC = Cast<AChessPlayerController>(this->GetController());
-	PC->ChangeMenuWidget(PC->winUMG);
+	PC->ChangeMenuWidget(PC->WinUMG);
 }
-void AChessPawn::lose_Implementation() {
+void AChessPawn::Lose_Implementation() {
 	//ќтображаем сообщение о том, что мы проиграли
 	auto PC = Cast<AChessPlayerController>(this->GetController());
-	PC->ChangeMenuWidget(PC->loseUMG);
+	PC->ChangeMenuWidget(PC->LoseUMG);
 }

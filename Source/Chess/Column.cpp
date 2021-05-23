@@ -15,9 +15,9 @@ AColumn::AColumn()
 	FVector boundsColumn = FVector(sizeColumn * 0.02f, sizeColumn * 0.02f, 0.01f);
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	this->cube = this->CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Cube"));
-	this->cube->SetRelativeScale3D(boundsColumn);
-	this->SetRootComponent(this->cube);
+	this->CubeMesh = this->CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Cube"));
+	this->CubeMesh->SetRelativeScale3D(boundsColumn);
+	this->SetRootComponent(this->CubeMesh);
 	this->bReplicates = true;
 	this->SetReplicateMovement(true);
 }
@@ -27,7 +27,7 @@ void AColumn::BeginPlay()
 {
 	Super::BeginPlay();
 	//Спрятать клетки с начала игры
-	this->setVisible(false);
+	this->SetVisible(false);
 }
 
 // Called every frame
@@ -36,23 +36,23 @@ void AColumn::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 }
-void AColumn::setVisible_Implementation(bool isVisible) {
-	this->cube->SetVisibility(isVisible);
+void AColumn::SetVisible_Implementation(bool IsVisible) {
+	this->CubeMesh->SetVisibility(IsVisible);
 }
 
 void AColumn::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(AColumn, rowPosition);
-	DOREPLIFETIME(AColumn, columnPosition);
+	DOREPLIFETIME(AColumn, RowPosition);
+	DOREPLIFETIME(AColumn, ColumnPosition);
 }
-int32 AColumn::getRowPosition() const {
-	return this->rowPosition;
+int32 AColumn::GetRowPosition() const {
+	return this->RowPosition;
 }
-int32 AColumn::getColumnPosition()const {
-	return this->columnPosition;
+int32 AColumn::GetColumnPosition()const {
+	return this->ColumnPosition;
 }
-void AColumn::initialize_Implementation(int32 row, int32 column) {
+void AColumn::Initialize_Implementation(int32 Row, int32 Column) {
 	//Сохранить столбец и рядок клетки
-	this->rowPosition = row;
-	this->columnPosition = column;
+	this->RowPosition = Row;
+	this->ColumnPosition = Column;
 }

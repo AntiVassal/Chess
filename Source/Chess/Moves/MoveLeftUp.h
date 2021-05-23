@@ -3,24 +3,26 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "../MoveFigure.h"
+#include "MoveFigure.h"
 #include "MoveLeftUp.generated.h"
 
 /**
- * 
+ * Движение по диагонали влево и вверх
  */
 UCLASS()
 class CHESS_API UMoveLeftUp : public UMoveFigure
 {
 	GENERATED_BODY()
 public:
-	virtual bool isMoving() override;
-	virtual int8 toColumn() const override;
-	virtual int8 toRow() const override;
-	//Установка длинны, на которую будет произведён ход
-	void setCount(int8 count);
+	virtual bool IsValidMoving() override;
+	virtual FFigureInfo GetFigureInfoAfterMoving() const override;
+	/**
+	 * Устанавливает длинну хода
+	 * @param Length - Длинна хода (количество клеток, 1 - 7)
+	 */
+	void SetLength(int8 Length);
 private:
-	//Длинна хода
-	int8 _count;
+	/** Длинна хода (количество клеток, 1 - 7) */
+	int8 LengthMove;
 	
 };

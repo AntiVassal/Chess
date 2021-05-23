@@ -4,32 +4,32 @@
 #include "Board.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/BoxComponent.h"
-#include "Figure.h"
+#include "Figures/Figure.h"
 #include "ChessPawn.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Engine/Engine.h"
 #include "Column.h"
-#include "King.h"
+#include "Figures/King.h"
 #include "AIChessPawn.h"
-#include "MoveFigure.h"
+#include "Moves/MoveFigure.h"
 // Sets default values
 ABoard::ABoard()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	this->bReplicates = true;
-	this->boardMesh = this->CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BoardStaticMesh"));
-	this->SetRootComponent(this->boardMesh);
+	this->BoardMesh = this->CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BoardStaticMesh"));
+	this->SetRootComponent(this->BoardMesh);
 	//Первыми всегда ходят белые
-	this->nextMove = DirectionFigure::WHITE;
+	this->NextMove = EColorFigure::WHITE;
 	//По умолчанию игра идёт по сети
-	this->bIsAIPlayer = false;
+	this->bAIPlayer = false;
 	//Создание игрового поля
 	for (int32 i = 0; i < 8; ++i) {
-		this->board.rows.Add(FBoardRow());
+		this->BoardState.Rows.Add(FBoardRow());
 		for (int32 j = 0; j < 8; ++j) {
-			this->board.rows[i].columns.Add(FBoardColumn());
+			this->BoardState.Rows[i].Columns.Add(FBoardColumn());
 		}
 	}
 }
@@ -40,74 +40,75 @@ void ABoard::BeginPlay()
 	Super::BeginPlay();
 	//Заполнение игрового поля происходит только на сервере
 	if (this->HasAuthority()) {
-		auto world = this->GetWorld();
-		const int32 sizeColumn = 118.0f;
-		if (world != nullptr) {
+		UWorld* World = this->GetWorld();
+		if (World != nullptr) {
 			for (int32 i = 0; i < 8; ++i) {
 				//Просчёт расположения клеток игровой доски
-				FVector forwardVector = (FVector::ForwardVector * i - FVector::ForwardVector * 4) * sizeColumn * 2 + FVector::ForwardVector * sizeColumn;
+				FVector forwardVector = (FVector::ForwardVector * i - FVector::ForwardVector * 4) * SizeColumn + 
+					FVector::ForwardVector * SizeColumn / 2;
 				for (int32 j = 0; j < 8; ++j) {
-					FVector rightOffset = (FVector::RightVector * j - FVector::RightVector * 4) * sizeColumn * 2 + FVector::RightVector * sizeColumn;
-					auto column = world->SpawnActor<AColumn>(this->columnActor,
+					FVector rightOffset = (FVector::RightVector * j - FVector::RightVector * 4) * SizeColumn +
+						FVector::RightVector * SizeColumn / 2;
+					AColumn* Column = World->SpawnActor<AColumn>(this->ColumnActor,
 						rightOffset + forwardVector + this->GetActorLocation(), FRotator());
-					column->initialize(i, j);
-					this->columns.Add(column);
+					Column->Initialize(i, j);
+					this->Columns.Add(Column);
 				}
 			}
 		}
-		FRotator forward(0.0f, 270, 0.0f);
-		FRotator backward(0.0f, 90.0f, 0.0f);
+		FRotator ForwardRotation(0.0f, 270, 0.0f);
+		FRotator BackwardRotation(0.0f, 90.0f, 0.0f);
 		for (int32 i = 0; i < 8; ++i) {
 			//Спавн пешек
-			this->spawnFigure(this->pawnWhite, 1, i, forward);
-			this->spawnFigure(this->pawnBlack, 6, i, backward);
+			this->SpawnFigure(this->PawnWhite, 1, i, ForwardRotation);
+			this->SpawnFigure(this->PawnBlack, 6, i, BackwardRotation);
 			if (i == 0 || i == 7) {
 				//Спавн башен
-				this->spawnFigure(this->rockWhite, 0, i, forward);
-				this->spawnFigure(this->rockBlack, 7, i, backward);
+				this->SpawnFigure(this->RockWhite, 0, i, ForwardRotation);
+				this->SpawnFigure(this->RockBlack, 7, i, BackwardRotation);
 			}
 			else if (i == 1 || i == 6) {
 				//Спавн коней
-				this->spawnFigure(this->knightWhite, 0, i, forward);
-				this->spawnFigure(this->knightBlack, 7, i, backward);
+				this->SpawnFigure(this->KnightWhite, 0, i, ForwardRotation);
+				this->SpawnFigure(this->KnightBlack, 7, i, BackwardRotation);
 			}
 			else if (i == 2 || i == 5) {
 				//Спавн офицеров
-				this->spawnFigure(this->bishopWhite, 0, i, forward);
-				this->spawnFigure(this->bishopBlack, 7, i, backward);
+				this->SpawnFigure(this->BishopWhite, 0, i, ForwardRotation);
+				this->SpawnFigure(this->BishopBlack, 7, i, BackwardRotation);
 			}
 			else if (i == 3) {
 				//Спавн ферзей
-				this->spawnFigure(this->queenWhite, 0, i, forward);
-				this->spawnFigure(this->queenBlack, 7, i, backward);
+				this->SpawnFigure(this->QueenWhite, 0, i, ForwardRotation);
+				this->SpawnFigure(this->QueenBlack, 7, i, BackwardRotation);
 			}
 			else if (i == 4) {
 				//Спавн королей
-				this->spawnFigure(this->kingWhite, 0, i, forward);
-				this->spawnFigure(this->kingBlack, 7, i, backward);
+				this->SpawnFigure(this->KingWhite, 0, i, ForwardRotation);
+				this->SpawnFigure(this->KingBlack, 7, i, BackwardRotation);
 			}
 		}
 	}
 }
-void ABoard::spawnFigure(UClass* figure, int32 row, int32 column, FRotator rotator) {
-	auto world = this->GetWorld();
-	if (world != nullptr && figure != nullptr) {
+void ABoard::SpawnFigure(UClass* Figure, int32 Row, int32 Column, FRotator Rotator) {
+	UWorld* World = this->GetWorld();
+	if (World != nullptr && Figure != nullptr) {
 		//Размещаем фигуру на доске
-		auto figureActor = world->SpawnActor<AFigure>(figure,
-			this->columns[row * 8 + column]->GetActorLocation() + this->GetActorLocation(),
-			rotator);
-		figureActor->initialize(this);
+		AFigure* FigureActor = World->SpawnActor<AFigure>(Figure,
+			this->Columns[Row * 8 + Column]->GetActorLocation() + this->GetActorLocation(),
+			Rotator);
+		FigureActor->Initialize(this);
 		//Если в этой клетке уже присутствует фигура, уничтожаем её
-		if (this->board.rows[row].columns[column].figure != nullptr) {
-			this->board.rows[row].columns[column].figure->Destroy();
+		if (this->BoardState.Rows[Row].Columns[Column].Figure != nullptr) {
+			this->BoardState.Rows[Row].Columns[Column].Figure->Destroy();
 		}
 		//Сохраняем указатель на фигуру в клетку
-		this->board.rows[row].columns[column].figure = figureActor;
+		this->BoardState.Rows[Row].Columns[Column].Figure = FigureActor;
 		//Если спавниться король, то сохраняем его для дополнительной логики
-		if (figure == this->kingWhite) {
-			this->whiteKing = Cast<AKing>(figureActor);
-		} else if (figure == this->kingBlack) {
-			this->blackKing = Cast<AKing>(figureActor);
+		if (Figure == this->KingWhite) {
+			this->WhiteKingPointer = Cast<AKing>(FigureActor);
+		} else if (Figure == this->KingBlack) {
+			this->BlackKingPointer = Cast<AKing>(FigureActor);
 		}
 	}
 }
@@ -119,285 +120,256 @@ void ABoard::Tick(float DeltaTime)
 }
 
 
-void ABoard::displayMoves_Implementation(const TArray<UMoveFigure*>& moves) {
+void ABoard::DisplayMoves_Implementation(const TArray<UMoveFigure*>& Moves) {
 	//Сначала прячем все отображённые ходы
-	this->hideMoves();
+	this->HideMoves();
 	//Перебираем все возможные ходы
-	for (auto move : moves) {
+	for (UMoveFigure* Move : Moves) {
 		//Получаем клетку, в которой окажеться фигура, после выполнения хода
-		auto col = this->getColumn(move->toRow(), move->toColumn());
+		FFigureInfo Info = Move->GetFigureInfoAfterMoving();
+		AColumn* Column = this->GetColumn(Info.Row, Info.Column);
 		//Подсвечиваем клетку
-		col->setVisible(true);
+		Column->SetVisible(true);
 	}
 }
-void ABoard::hideMoves_Implementation() {
+void ABoard::HideMoves_Implementation() {
 	//Перебор всех клеток и снятие видимости
-	for (auto col : this->columns) {
-		if (col != nullptr) {
-			col->setVisible(false);
+	for (AColumn* Column : this->Columns) {
+		if (Column != nullptr) {
+			Column->SetVisible(false);
 		}
 	}
 }
-void ABoard::initializePawn_Implementation(AChessPawn* pawn) {
+void ABoard::InitializePawn_Implementation(AChessPawn* Pawn) {
 	//Первый подключившийся игрок будет белым
-	if (this->white == nullptr) {
-		this->white = pawn;
-		pawn->direction = DirectionFigure::WHITE;
-		pawn->onDirectionReplicated();
+	if (this->WhitePlayer == nullptr) {
+		this->WhitePlayer = Pawn;
+		Pawn->ColorSide = EColorFigure::WHITE;
+		Pawn->OnDirectionReplicated();
 		//Если включена игра против ИИ, то спавним Pawn, в котором реализована логика ИИ
-		if (this->bIsAIPlayer) {
+		if (this->bAIPlayer) {
 			this->GetWorld()->SpawnActor(AAIChessPawn::StaticClass());
 		}
 	}
-	else if (this->black == nullptr) {
+	else if (this->BlackPlayer == nullptr) {
 		// Второй подключившийся игрок - чёрный
-		this->black = pawn;
-		pawn->direction = DirectionFigure::BLACK;
-		pawn->onDirectionReplicated();
+		this->BlackPlayer = Pawn;
+		Pawn->ColorSide = EColorFigure::BLACK;
+		Pawn->OnDirectionReplicated();
 	}
 }
 void ABoard::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	DOREPLIFETIME(ABoard, columns);
-	DOREPLIFETIME(ABoard, nextMove);
-	DOREPLIFETIME(ABoard, white);
-	DOREPLIFETIME(ABoard, black);
-	DOREPLIFETIME(ABoard, whiteKing);
-	DOREPLIFETIME(ABoard, blackKing);
-	DOREPLIFETIME(ABoard, board);
+	DOREPLIFETIME(ABoard, Columns);
+	DOREPLIFETIME(ABoard, NextMove);
+	DOREPLIFETIME(ABoard, WhitePlayer);
+	DOREPLIFETIME(ABoard, BlackPlayer);
+	DOREPLIFETIME(ABoard, WhiteKingPointer);
+	DOREPLIFETIME(ABoard, BlackKingPointer);
+	DOREPLIFETIME(ABoard, BoardState);
 }
 
-AColumn* ABoard::getColumn(int32 row, int32 column) const {
-	if (row < 0 || row > 7 || column < 0 || column > 7) return nullptr;
+AColumn* ABoard::GetColumn(int32 Row, int32 Column) const {
+	if (Row < 0 || Row > 7 || Column < 0 || Column > 7) return nullptr;
 	//Ячейки хранятся в одномерном масиве, поэтому считаем индекс и возвращаем нужную ячейку
-	return this->columns[row * 8 + column];
+	return this->Columns[Row * 8 + Column];
 }
-void ABoard::destroyFigure_Implementation(AFigure* figure) {
+void ABoard::DestroyFigure_Implementation(AFigure* Figure) {
 	//Если включена симуляция, то уничтожать фигуру не нужно
-	if (!this->isSimulated()) {
-		figure->Destroy();
+	if (!this->IsSimulated()) {
+		Figure->Destroy();
 	}
 	for (int32 i = 0; i < 8; ++i) {
 		for (int32 j = 0; j < 8; ++j) {
 			//Если включена симуляция, то сохраняем предыдущее состояние доски
-			if (this->isSimulated()) {
-				if (this->simulatedBoard.rows[i].columns[j].figure == figure) {
+			if (this->IsSimulated()) {
+				if (this->SimulatedBoardState.Rows[i].Columns[j].Figure == Figure) {
 					//Затираем указатель на фигуру, теперь фигура не будет учитываться при получении возможных ходов
-					this->simulatedBoard.rows[i].columns[j].figure = nullptr;
+					this->SimulatedBoardState.Rows[i].Columns[j].Figure = nullptr;
 					break;
 				}
-			}else if (this->board.rows[i].columns[j].figure == figure) {
+			}else if (this->BoardState.Rows[i].Columns[j].Figure == Figure) {
 				//Затираем указатель на фигуру, теперь фигура не будет учитываться при получении возможных ходов
-				this->board.rows[i].columns[j].figure = nullptr;
+				this->BoardState.Rows[i].Columns[j].Figure = nullptr;
 				break;
 			}
 		}
 	}
 }
-AFigure* ABoard::getFigure(int32 row, int32 column) const {
+AFigure* ABoard::GetFigure(int32 Row, int32 Column) const {
 	//Если включена симуляция, то возвращаем фигуру расположеную на последнем состоянии симулированной доски,
 	//в противном случае возвращаем фигуру расположеную на реальной доске
-	return this->isSimulated() ?
-		this->simulatedBoard.rows[row].columns[column].figure :
-		this->board.rows[row].columns[column].figure;
+	return this->IsSimulated() ?
+		this->SimulatedBoardState.Rows[Row].Columns[Column].Figure :
+		this->BoardState.Rows[Row].Columns[Column].Figure;
 }
-AChessPawn* ABoard::getNextMovePawn() const {
-	switch (this->nextMove) {
-	case DirectionFigure::WHITE:
-		return this->white;
-	case DirectionFigure::BLACK:
-		return this->black;
+AChessPawn* ABoard::GetPlayerPawnNextMove() const {
+	switch (this->NextMove) {
+	case EColorFigure::WHITE:
+		return this->WhitePlayer;
+	case EColorFigure::BLACK:
+		return this->BlackPlayer;
 	}
 	return nullptr;
 }
-void ABoard::togleNextMove_Implementation() {
+void ABoard::TogleNextMove_Implementation() {
 	//Если предыдущий ход был за белых, то ходят чёрные, в противном случае - белые
-	switch (this->nextMove) {
-	case DirectionFigure::WHITE:
-		this->nextMove = DirectionFigure::BLACK;
-		this->black->whaitMove();
+	switch (this->NextMove) {
+	case EColorFigure::WHITE:
+		this->NextMove = EColorFigure::BLACK;
+		this->BlackPlayer->WhaitNextMove();
 		break;
-	case DirectionFigure::BLACK:
-		this->nextMove = DirectionFigure::WHITE;
-		this->white->whaitMove();
+	case EColorFigure::BLACK:
+		this->NextMove = EColorFigure::WHITE;
+		this->WhitePlayer->WhaitNextMove();
 		break;
 	}
 }
-void ABoard::getAllMoves(TArray<UMoveFigure*>& res, DirectionFigure direct) {
+void ABoard::GetAllMoves(TArray<UMoveFigure*>& Moves, EColorFigure Color) {
 	//Перебор всех фигур на доске и получение их возможных ходов
 	for (int32 i = 0; i < 8; ++i) {
 		for (int32 j = 0; j < 8; ++j) {
-			auto figure = this->getFigure(i, j);
-			if (figure != nullptr && figure->getDirection() == direct) {
-				figure->getMoves(res);
+			AFigure* Figure = this->GetFigure(i, j);
+			if (Figure != nullptr && Figure->GetColor() == Color) {
+				Figure->GetMoves(Moves);
 			}
 		}
 	}
 }
-bool ABoard::isSimulated() const {
-	return this->_isSimulated;
+bool ABoard::IsSimulated() const {
+	return this->bIsSimulated;
 }
-void ABoard::startSimulation() {
-	this->_isSimulated = true;
+void ABoard::StartSimulation() {
+	this->bIsSimulated = true;
 	//При старте симуляции копируем текущее состояние доски в симуляцию
-	this->simulatedBoard = this->board;
-	this->simulatedPrevBoards.Empty();
+	this->SimulatedBoardState = this->BoardState;
+	this->SimulatedPrevBoardStates.Empty();
 }
-void ABoard::stopSimulation() {
-	this->_isSimulated = false;
+void ABoard::StopSimulation() {
+	this->bIsSimulated = false;
 }
-AKing* ABoard::getKing(DirectionFigure direct) const {
-	switch (direct) {
-	case DirectionFigure::WHITE:
-		return this->whiteKing;
-	case DirectionFigure::BLACK:
-		return this->blackKing;
+AKing* ABoard::GetKing(EColorFigure Direct) const {
+	switch (Direct) {
+	case EColorFigure::WHITE:
+		return this->WhiteKingPointer;
+	case EColorFigure::BLACK:
+		return this->BlackKingPointer;
 	}
 	return nullptr;
 }
-AChessPawn* ABoard::getPawn(DirectionFigure direct) const {
-	switch (direct) {
-	case DirectionFigure::WHITE:
-		return this->white;
-	case DirectionFigure::BLACK:
-		return this->black;
+AChessPawn* ABoard::GetPlayerPawn(EColorFigure Direct) const {
+	switch (Direct) {
+	case EColorFigure::WHITE:
+		return this->WhitePlayer;
+	case EColorFigure::BLACK:
+		return this->BlackPlayer;
 	}
 	return nullptr;
 }
-float ABoard::getPower(DirectionFigure direct) const {
-	float res = 0.0f;
+float ABoard::GetPowerAllFigures(EColorFigure Color) const {
+	float Result = 0.0f;
 	//Перебор всех фигур на доске и подсчёт их веса
 	for (int32 i = 0; i < 8; ++i) {
 		for (int32 j = 0; j < 8; ++j) {
-			auto figure = this->getFigure(i, j);
-			if (figure != nullptr && figure->getDirection() == direct) {
-				res += figure->getPower(i, j);
+			AFigure* figure = this->GetFigure(i, j);
+			if (figure != nullptr && figure->GetColor() == Color) {
+				Result += figure->GetPower(i, j);
+			}
+		}
+	}
+	return Result;
+}
+FFigureInfo ABoard::GetFigureInfo(const AFigure* Figure) const{
+	FFigureInfo res;
+	for(int32 i = 0; i < 8; ++i){
+		for (int32 j = 0; j < 8; ++j) {
+			if(this->IsSimulated()){
+				if(this->SimulatedBoardState.Rows[i].Columns[j].Figure == Figure){
+					res.Column = j;
+					res.Row = i;
+					res.CountMoves = this->SimulatedBoardState.Rows[i].Columns[j].CountMoves;
+					return res;
+				}
+			}else{
+				if(this->BoardState.Rows[i].Columns[j].Figure == Figure){
+					res.Column = j;
+					res.Row = i;
+					res.CountMoves = this->BoardState.Rows[i].Columns[j].CountMoves;
+					return res;
+				}
 			}
 		}
 	}
 	return res;
 }
-int32 ABoard::getRow(const AFigure* figure) const {
-	for (int32 i = 0; i < 8; ++i) {
-		for (int32 j = 0; j < 8; ++j) {
-			//Если включена симуляция, то ищем фигуру в симулированной доске, иначе - в реальной
-			if (this->isSimulated()) {
-				if (this->simulatedBoard.rows[i].columns[j].figure == figure) {
-					return i;
-				}
-			}
-			else {
-				if (this->board.rows[i].columns[j].figure == figure) {
-					return i;
-				}
-			}
-		}
-	}
-	return -1;
-}
-int32 ABoard::getColumn(const AFigure* figure)const {
-	for (int32 i = 0; i < 8; ++i) {
-		for (int32 j = 0; j < 8; ++j) {
-			//Если включена симуляция, то ищем фигуру в симулированной доске, иначе - в реальной
-			if (this->isSimulated()) {
-				if (this->simulatedBoard.rows[i].columns[j].figure == figure) {
-					return j;
-				}
-			}
-			else {
-				if (this->board.rows[i].columns[j].figure == figure) {
-					return j;
-				}
-			}
-		}
-	}
-	return -1;
-}
-void ABoard::moveFigure(UMoveFigure* move) {
+void ABoard::MoveFigureOnBoard(UMoveFigure* Move) {
 	//Если включена симуляция, то сохраняем предыдущее состояние доски
-	if (this->isSimulated()) {
-		this->simulatedPrevBoards.Add(this->simulatedBoard);
+	if (this->IsSimulated()) {
+		this->SimulatedPrevBoardStates.Add(this->SimulatedBoardState);
 	}
 	//Если при исполнении хода должна уничтожиться фигура, уничтожаем её
-	if (move->getDestroyFigure() != nullptr) {
-		auto destroyRow = this->getRow(move->getDestroyFigure());
-		auto destroyColumn = this->getColumn(move->getDestroyFigure());
-		if (destroyColumn != -1 && destroyRow != -1) {
-			if (this->isSimulated()) {
-				this->simulatedBoard.rows[destroyRow].columns[destroyColumn].figure = nullptr;
-			}
-			else {
-				move->getDestroyFigure()->Destroy();
-				this->board.rows[destroyRow].columns[destroyColumn].figure = nullptr;
-			}
+	if (Move->GetDestroyFigure() != nullptr) {
+		FFigureInfo DestroyFigureInfo = this->GetFigureInfo(Move->GetDestroyFigure());
+		if (this->IsSimulated()) {
+			this->SimulatedBoardState.Rows[DestroyFigureInfo.Row].Columns[DestroyFigureInfo.Column].Figure = nullptr;
+		}
+		else {
+			Move->GetDestroyFigure()->Destroy();
+			this->BoardState.Rows[DestroyFigureInfo.Row].Columns[DestroyFigureInfo.Column].Figure = nullptr;
 		}
 	}
 	//Перемещаем фигуру на реальной или симулированной доске, в зависимости од того, включена симуляция или нет.
-	if (this->isSimulated()) {
-		auto& prevColumn = this->simulatedBoard.rows[move->getRow()].columns[move->getColumn()];
-		auto& nextColumn = this->simulatedBoard.rows[move->toRow()].columns[move->toColumn()];
-		prevColumn.figure = nullptr;
-		if (nextColumn.figure == nullptr) {
-			nextColumn.figure = move->getFigure();
+	if (this->IsSimulated()) {
+		FFigureInfo BeforeMoveFigureInfo = Move->GetFigureInfoBeforeMoving();
+		FBoardColumn& PrevColumn = this->SimulatedBoardState.Rows[BeforeMoveFigureInfo.Row].Columns[BeforeMoveFigureInfo.Column];
+		FFigureInfo AfterMoveFigureInfo = Move->GetFigureInfoAfterMoving();
+		FBoardColumn& NextColumn = this->SimulatedBoardState.Rows[AfterMoveFigureInfo.Row].Columns[AfterMoveFigureInfo.Column];
+		PrevColumn.Figure = nullptr;
+		if (NextColumn.Figure == nullptr) {
+			NextColumn.Figure = Move->GetFigure();
 		}
-		nextColumn.countMoves =	prevColumn.countMoves + 1;
-		prevColumn.countMoves = 0;
+		NextColumn.CountMoves = PrevColumn.CountMoves + 1;
+		PrevColumn.CountMoves = 0;
 	}
 	else {
-		auto& prevColumn = this->board.rows[move->getRow()].columns[move->getColumn()];
-		auto& nextColumn = this->board.rows[move->toRow()].columns[move->toColumn()];
+		FFigureInfo BeforeMoveFigureInfo = Move->GetFigureInfoBeforeMoving();
+		FBoardColumn& PrevColumn = this->BoardState.Rows[BeforeMoveFigureInfo.Row].Columns[BeforeMoveFigureInfo.Column];
+		FFigureInfo AfterMoveFigureInfo = Move->GetFigureInfoAfterMoving();
+		FBoardColumn& NextColumn = this->BoardState.Rows[AfterMoveFigureInfo.Row].Columns[AfterMoveFigureInfo.Column];
 		//Отрисовка анимации передвижения
-		move->getFigure()->moveTo(move);
-		prevColumn.figure = nullptr;
-		if (nextColumn.figure == nullptr) {
-			nextColumn.figure = move->getFigure();
+		Move->GetFigure()->AnimateMove(Move);
+		PrevColumn.Figure = nullptr;
+		if (NextColumn.Figure == nullptr) {
+			NextColumn.Figure = Move->GetFigure();
 		}
-		nextColumn.countMoves = prevColumn.countMoves + 1;
-		prevColumn.countMoves = 0;
+		NextColumn.CountMoves = PrevColumn.CountMoves + 1;
+		PrevColumn.CountMoves = 0;
 	}
 }
-void ABoard::rollback() {
+void ABoard::RollbackBoard() {
 	//Откат хода возможен только в симуляции
-	if (this->isSimulated()) {
-		this->simulatedBoard = this->simulatedPrevBoards.Last();
-		this->simulatedPrevBoards.RemoveAt(this->simulatedPrevBoards.Num() - 1);
+	if (this->IsSimulated()) {
+		this->SimulatedBoardState = this->SimulatedPrevBoardStates.Last();
+		this->SimulatedPrevBoardStates.RemoveAt(this->SimulatedPrevBoardStates.Num() - 1);
 	}
 }
-int32 ABoard::getCountMoves(const class AFigure* figure) const {
-	for (int32 i = 0; i < 8; ++i) {
-		for (int32 j = 0; j < 8; ++j) {
-			//Поиск фигуры на реальной или симулированной доске, в зависимости од того, включена симуляция или нет.
-			if (this->isSimulated()) {
-				if (this->simulatedBoard.rows[i].columns[j].figure == figure) {
-					return this->simulatedBoard.rows[i].columns[j].countMoves;
-				}
-			}
-			else {
-				if (this->board.rows[i].columns[j].figure == figure) {
-					return this->board.rows[i].columns[j].countMoves;
-				}
-			}
-		}
-	}
-	return 0;
-}
-void ABoard::setFigure(UClass* figure, int8 row, int8 column, DirectionFigure direct) {
+void ABoard::SetFigure(UClass* Figure, int8 Row, int8 Column, EColorFigure Direct) {
 	FRotator forward(0.0f, 270, 0.0f);
 	FRotator backward(0.0f, 90.0f, 0.0f);
 	//Размежение фигуры на доске
-	this->spawnFigure(figure, row, column, direct == DirectionFigure::WHITE ? forward : backward);
+	this->SpawnFigure(Figure, Row, Column, Direct == EColorFigure::WHITE ? forward : backward);
 }
-void ABoard::lose(AChessPawn* pawn) {
+void ABoard::Lose(AChessPawn* Pawn) {
 	//Сообщаем игроку, что он проиграл
-	pawn->lose();
-	switch (pawn->direction) {
-	case DirectionFigure::WHITE:
+	Pawn->Lose();
+	switch (Pawn->ColorSide) {
+	case EColorFigure::WHITE:
 		//Сообщаем игроку, что он выиграл
-		this->black->win();
+		this->BlackPlayer->Win();
 		break;
-	case DirectionFigure::BLACK:
+	case EColorFigure::BLACK:
 		//Сообщаем игроку, что он выиграл
-		this->white->win();
+		this->WhitePlayer->Win();
 		break;
 	}
 }

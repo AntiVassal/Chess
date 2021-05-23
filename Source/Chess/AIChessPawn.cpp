@@ -3,108 +3,114 @@
 
 #include "AIChessPawn.h"
 #include "Board.h"
-#include "Figure.h"
-#include "MoveFigure.h"
-void AAIChessPawn::whaitMove_Implementation() {
-	TArray<UMoveFigure*> moves;
+#include "Figures/Figure.h"
+#include "Moves/MoveFigure.h"
+void AAIChessPawn::WhaitNextMove_Implementation() {
+	TArray<UMoveFigure*> Moves;
 	//Получение лучших ходов
-	this->minimax(4, this->direction, &moves);
-	if (moves.Num() > 0) {
+	this->Minimax(4, this->ColorSide, &Moves);
+	if (Moves.Num() > 0) {
 		//Выбор случайного хода
-		moves[FMath::RandRange(0, moves.Num() - 1)]->move();
+		Moves[FMath::RandRange(0, Moves.Num() - 1)]->Move();
 	}else{
-		//Если нет ходов, то проиграл
-		this->board->lose(this);
+		//Если нет ходов, то признаём поражение
+		this->BoardActor->Lose(this);
 	}
 }
-float AAIChessPawn::minimax(int32 depth, DirectionFigure figureDirection, TArray<UMoveFigure*>* move) {
-	if (depth == 0) {
+float AAIChessPawn::Minimax(int32 Depth, EColorFigure FigureDirection, TArray<UMoveFigure*>* Move) {
+	if (Depth == 0) {
 		//Если глубина ноль, то посчитать вес всех фигур на доске
-		return this->board->getPower(DirectionFigure::WHITE) - this->board->getPower(DirectionFigure::BLACK);
+		return this->BoardActor->GetPowerAllFigures(EColorFigure::WHITE) -
+			this->BoardActor->GetPowerAllFigures(EColorFigure::BLACK);
 	}
-	TArray<UMoveFigure*> moves;
+	TArray<UMoveFigure*> Moves;
 	//Получаем все доступные ходы
-	this->board->getAllMoves(moves, figureDirection);
+	this->BoardActor->GetAllMoves(Moves, FigureDirection);
 	//Для работы алгоритма, нужно симулировать разные состояния доски. Если симуляция не была включена, включаем её.
-	bool isSimulated = this->board->isSimulated();
-	if (!isSimulated) {
-		this->board->startSimulation();
+	bool IsSimulated = this->BoardActor->IsSimulated();
+	if (!IsSimulated) {
+		this->BoardActor->StartSimulation();
 	}
-	switch (figureDirection)
+	switch (FigureDirection)
 	{
-	case WHITE: {
-		float bestMove = -9999;
-		for (auto lmove : moves) {
+	case EColorFigure::WHITE: {
+		float BestMove = -9999;
+		for (UMoveFigure* LMove : Moves) {
 			//Симуляция хода
-			lmove->move();
+			LMove->Move();
 			//Предварительный подсчёт веса
-			auto power = this->board->getPower(DirectionFigure::WHITE) - this->board->getPower(DirectionFigure::BLACK);
-			if (FMath::IsNearlyEqual(bestMove, power) || power > bestMove) {
+			float Power = this->BoardActor->GetPowerAllFigures(EColorFigure::WHITE) -
+				this->BoardActor->GetPowerAllFigures(EColorFigure::BLACK);
+			if (FMath::IsNearlyEqual(BestMove, Power) || Power > BestMove) {
 				//Если предварительный подсчёт веса показал выгодный ход, то предсказываем возможные ходы противника
-				power = this->minimax(depth - 1, DirectionFigure::BLACK, nullptr);
+				Power = this->Minimax(Depth - 1, EColorFigure::BLACK, nullptr);
 				//Если после возможных ходов противника вес всё ещё показывает выгоду, то сохраняем этот ход.
-				if (power > bestMove || FMath::IsNearlyEqual(power, bestMove)) {
-					bestMove = power;
-					if (move != nullptr) {
-						if (!FMath::IsNearlyEqual(power, bestMove)) {
-							move->Empty();
+				if (Power > BestMove || FMath::IsNearlyEqual(Power, BestMove)) {
+					BestMove = Power;
+					if (Move != nullptr) {
+						//Если вес хода лучший, чем в сохранённых ходов, то очищаем массив от них
+						if (!FMath::IsNearlyEqual(Power, BestMove)) {
+							Move->Empty();
 						}
-						move->Add(lmove);
+						Move->Add(LMove);
 					}
 				}
 			}
 			//Откатываем состояние доски
-			lmove->rollback();
+			LMove->Rollback();
 		}
 		//Останавливаем симуляцию
-		if (!isSimulated) {
-			this->board->stopSimulation();
+		if (!IsSimulated) {
+			this->BoardActor->StopSimulation();
 		}
-		return bestMove;
+		return BestMove;
 
 	}
-	case BLACK: {
-		float bestMove = 9999;
-		for (auto lmove : moves) {
+	case EColorFigure::BLACK: {
+		float BestMove = 9999;
+		for (UMoveFigure* LMove : Moves) {
 			//Симуляция хода
-			lmove->move();
+			LMove->Move();
 			//Предварительный подсчёт веса
-			auto power = this->board->getPower(DirectionFigure::WHITE) - this->board->getPower(DirectionFigure::BLACK);
-			if (FMath::IsNearlyEqual(bestMove, power) || power < bestMove) {
+			float Power = this->BoardActor->GetPowerAllFigures(EColorFigure::WHITE) -
+				this->BoardActor->GetPowerAllFigures(EColorFigure::BLACK);
+			if (FMath::IsNearlyEqual(BestMove, Power) || Power < BestMove) {
 				//Если предварительный подсчёт веса показал выгодный ход, то предсказываем возможные ходы противника
-				power = this->minimax(depth - 1, DirectionFigure::WHITE, nullptr);
+				Power = this->Minimax(Depth - 1, EColorFigure::WHITE, nullptr);
 				//Если после возможных ходов противника вес всё ещё показывает выгоду, то сохраняем этот ход.
-				if (power < bestMove || FMath::IsNearlyEqual(power, bestMove)) {
-					bestMove = power;
-					if (move != nullptr) {
-						if (!FMath::IsNearlyEqual(power, bestMove)) {
-							move->Empty();
+				if (Power < BestMove || FMath::IsNearlyEqual(Power, BestMove)) {
+					BestMove = Power;
+					if (Move != nullptr) {
+						//Если вес хода лучший, чем в сохранённых ходов, то очищаем массив от них
+						if (!FMath::IsNearlyEqual(Power, BestMove)) {
+							Move->Empty();
 						}
-						move->Add(lmove);
+						Move->Add(LMove);
 					}
 				}
 			}
 			//Откатываем состояние доски
-			lmove->rollback();
+			LMove->Rollback();
 		}
 		//Останавливаем симуляцию
-		if (!isSimulated) {
-			this->board->stopSimulation();
+		if (!IsSimulated) {
+			this->BoardActor->StopSimulation();
 		}
-		return bestMove;
+		return BestMove;
 
 	}
 	}
-	if (!isSimulated) {
-		this->board->stopSimulation();
+	if (!IsSimulated) {
+		this->BoardActor->StopSimulation();
 	}
 	return 0.0f;
 }
-void AAIChessPawn::pawnEndPath_Implementation(int32 row, int32 column) {
+void AAIChessPawn::OnPawnEndPath_Implementation(int32 row, int32 column) {
 	//Когда пешка доходит до конца, заменяем её на ферзя
-	this->board->setFigure(this->direction == DirectionFigure::WHITE ? this->board->queenWhite : this->board->queenBlack,
-		row, column, this->direction);
+	this->BoardActor->SetFigure(this->ColorSide == EColorFigure::WHITE ?
+		this->BoardActor->QueenWhite : this->BoardActor->QueenBlack,
+		row, column, this->ColorSide);
 }
 //Для ИИ не нужно отображать сообщений о выиграше или проиграше
-void AAIChessPawn::win_Implementation(){}
-void AAIChessPawn::lose_Implementation() {}
+void AAIChessPawn::Win_Implementation(){}
+void AAIChessPawn::Lose_Implementation() {}

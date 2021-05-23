@@ -3,21 +3,20 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "../MoveFigure.h"
+#include "MoveFigure.h"
 #include "MoveKingToRockRight.generated.h"
 
 /**
- * 
+ * Рокировка с правой башней
  */
 UCLASS()
 class CHESS_API UMoveKingToRockRight : public UMoveFigure
 {
 	GENERATED_BODY()
 public:
-	virtual bool isMoving() override;
-	virtual void move() override;
-	virtual void rollback() override;
-	virtual int8 toColumn() const override;
-	virtual int8 toRow() const override;
-	virtual void finishMove();
+	virtual bool IsValidMoving() override;
+	virtual void Move() override;
+	virtual void Rollback() override;
+	virtual FFigureInfo GetFigureInfoAfterMoving() const override;
+	virtual void FinishMove();
 };

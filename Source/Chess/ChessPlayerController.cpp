@@ -13,29 +13,29 @@ AChessPlayerController::AChessPlayerController()
 	DefaultMouseCursor = EMouseCursor::Crosshairs;
     //Виджет выбора фигуры
 	static ConstructorHelpers::FClassFinder <UUserWidget>
-        selectFigure(TEXT("WidgetBlueprint'/Game/UMG/SelectFigure.SelectFigure_C'"));
-	this->selectedFigureUMG = selectFigure.Class;
+        SelectFigureWidget(TEXT("WidgetBlueprint'/Game/UMG/SelectFigure.SelectFigure_C'"));
+	this->SelectedFigureUMG = SelectFigureWidget.Class;
     //Виджет выиграша
-	static ConstructorHelpers::FClassFinder <UUserWidget> win(TEXT("WidgetBlueprint'/Game/UMG/YurWin.YurWin_C'"));
-    this->winUMG = win.Class;
+	static ConstructorHelpers::FClassFinder <UUserWidget> WinWidget(TEXT("WidgetBlueprint'/Game/UMG/YurWin.YurWin_C'"));
+    this->WinUMG = WinWidget.Class;
     //Виджет проиграша
-	static ConstructorHelpers::FClassFinder <UUserWidget> lose(TEXT("WidgetBlueprint'/Game/UMG/YourLose.YourLose_C'"));
-    this->loseUMG = lose.Class;
+	static ConstructorHelpers::FClassFinder <UUserWidget> LoseWidget(TEXT("WidgetBlueprint'/Game/UMG/YourLose.YourLose_C'"));
+    this->LoseUMG = LoseWidget.Class;
     //Виджет главного меню
-    static ConstructorHelpers::FClassFinder <UUserWidget> mainMenu(TEXT("WidgetBlueprint'/Game/UMG/MainMenu.MainMenu_C'"));
-    this->mainMenuUMG = mainMenu.Class;
+    static ConstructorHelpers::FClassFinder <UUserWidget> MainMenuWidget(TEXT("WidgetBlueprint'/Game/UMG/MainMenu.MainMenu_C'"));
+    this->MainMenuUMG = MainMenuWidget.Class;
 
 }
 void AChessPlayerController::BeginPlay() {
 	this->SetInputMode(FInputModeGameAndUI());
     //При старте игры отобразить главное меню
-    ChangeMenuWidget(this->mainMenuUMG);
+    ChangeMenuWidget(this->MainMenuUMG);
 }
-void AChessPlayerController::selectFigureTo_Implementation(int32 row, int32 column) {
-	this->_row = row;
-	this->_column = column;
+void AChessPlayerController::SelectFigureTo_Implementation(int32 Row, int32 Column) {
+	this->RowPawnFigure = Row;
+	this->ColumnPawnFigure = Column;
     //Отобразить меню выбора фигуры
-	this->ChangeMenuWidget(this->selectedFigureUMG);
+	this->ChangeMenuWidget(this->SelectedFigureUMG);
 }
 void AChessPlayerController::ChangeMenuWidget(TSubclassOf<UUserWidget> NewWidgetClass)
 {
